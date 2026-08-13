@@ -3,8 +3,8 @@
 import React from 'react';
 import { RealmProgression, RealmType } from '@/lib/types';
 import { REALM_DEFINITIONS } from '@/lib/realm-config';
-import { Flower2, ShieldAlert, Castle, Rocket, Wand2 } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
+import { Flower2, ShieldAlert, Castle, Rocket, Wand2 } from 'lucide-react';
 
 interface RealmSelectorProps {
   activeRealm: RealmType;
@@ -17,26 +17,26 @@ export const RealmSelector: React.FC<RealmSelectorProps> = ({
   realms,
   onSelectRealm,
 }) => {
-  const realmList: RealmType[] = ['garden', 'military', 'town', 'space', 'arcane'];
+  const realmKeys: RealmType[] = ['garden', 'military', 'town', 'space', 'arcane'];
 
-  const getIcon = (type: RealmType) => {
+  const getRealmIcon = (type: RealmType) => {
     switch (type) {
       case 'garden':
-        return <Flower2 className="w-4 h-4 md:w-5 md:h-5" />;
+        return <Flower2 className="w-3.5 h-3.5" />;
       case 'military':
-        return <ShieldAlert className="w-4 h-4 md:w-5 md:h-5" />;
+        return <ShieldAlert className="w-3.5 h-3.5" />;
       case 'town':
-        return <Castle className="w-4 h-4 md:w-5 md:h-5" />;
+        return <Castle className="w-3.5 h-3.5" />;
       case 'space':
-        return <Rocket className="w-4 h-4 md:w-5 md:h-5" />;
+        return <Rocket className="w-3.5 h-3.5" />;
       case 'arcane':
-        return <Wand2 className="w-4 h-4 md:w-5 md:h-5" />;
+        return <Wand2 className="w-3.5 h-3.5" />;
     }
   };
 
   return (
-    <div className="w-full flex items-center justify-start md:justify-center overflow-x-auto py-2 px-1 gap-2.5 no-scrollbar">
-      {realmList.map((realmKey) => {
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+      {realmKeys.map((realmKey) => {
         const meta = REALM_DEFINITIONS[realmKey];
         const prog = realms[realmKey];
         const isActive = activeRealm === realmKey;
@@ -49,46 +49,41 @@ export const RealmSelector: React.FC<RealmSelectorProps> = ({
               soundManager.playTap();
               onSelectRealm(realmKey);
             }}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all duration-300 whitespace-nowrap text-left cursor-pointer border select-none ${
+            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
               isActive
-                ? 'bg-slate-800/90 text-white shadow-lg scale-105'
-                : 'bg-slate-900/40 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-white/5'
+                ? 'bg-[#18181b] border-[#3f3f46] shadow-sm text-white'
+                : 'bg-[#121215] hover:bg-[#18181b] border-[#27272a] text-[#a1a1aa] hover:text-white'
             }`}
-            style={{
-              borderColor: isActive ? meta.accentColor : undefined,
-              boxShadow: isActive ? `0 0 20px -3px ${meta.glowColor}` : undefined,
-            }}
           >
-            <div
-              className="p-1.5 rounded-lg flex items-center justify-center transition-transform duration-300"
-              style={{
-                backgroundColor: isActive ? `${meta.accentColor}25` : 'rgba(255,255,255,0.05)',
-                color: meta.accentColor,
-              }}
-            >
-              {getIcon(realmKey)}
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="p-1.5 rounded-md flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: isActive ? `${meta.accentColor}20` : '#27272a',
+                  color: isActive ? meta.accentColor : '#a1a1aa',
+                }}
+              >
+                {getRealmIcon(realmKey)}
+              </div>
+              <div className="truncate">
+                <div className="text-xs font-semibold truncate leading-tight">
+                  {meta.name}
+                </div>
+                <div className="text-[10px] text-[#71717a] truncate">
+                  {meta.title.split(' ')[0]}
+                </div>
+              </div>
             </div>
 
-            <div>
-              <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
-                <span>{meta.name}</span>
-                {isActive && (
-                  <span
-                    className="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider"
-                    style={{
-                      backgroundColor: `${meta.accentColor}20`,
-                      color: meta.accentColor,
-                    }}
-                  >
-                    Stage {prog.growthStage}
-                  </span>
-                )}
-              </div>
-              <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                <span>{prog.resourceAmount}</span>
-                <span className="opacity-80">{prog.resourceName.split(' ')[0]}</span>
-              </div>
-            </div>
+            <span
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                isActive
+                  ? 'bg-white text-black'
+                  : 'bg-[#27272a] text-[#a1a1aa]'
+              }`}
+            >
+              S{prog.growthStage}
+            </span>
           </button>
         );
       })}

@@ -7,10 +7,11 @@ import { REALM_DEFINITIONS } from '@/lib/realm-config';
 import { HeaderHUD } from '@/components/layout/HeaderHUD';
 import { MobileNav, MainTab } from '@/components/layout/MobileNav';
 import { RealmSelector } from '@/components/realms/RealmSelector';
-import { RealmCanvas } from '@/components/realms/RealmCanvas';
+import { ThreeRealmCanvas } from '@/components/three/ThreeRealmCanvas';
+import { BuildingInspector } from '@/components/three/BuildingInspector';
+import { Interactive3DObject } from '@/components/three/scenes/Garden3D';
 import { HabitList } from '@/components/habits/HabitList';
 import { HabitModal } from '@/components/habits/HabitModal';
-import { StreakMultiplierBadge } from '@/components/habits/StreakMultiplierBadge';
 import { DailyQuests } from '@/components/progression/DailyQuests';
 import { TechTreeModal } from '@/components/progression/TechTreeModal';
 import { RewardsShop } from '@/components/progression/RewardsShop';
@@ -18,7 +19,6 @@ import { LevelUpModal } from '@/components/progression/LevelUpModal';
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap';
 import { StatsOverview } from '@/components/analytics/StatsOverview';
 import { AICoachDrawer } from '@/components/ai/AICoachDrawer';
-import { Globe2 } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 
 export default function Home() {
@@ -30,6 +30,9 @@ export default function Home() {
   const [quests, setQuests] = useState<Quest[]>(storage.getQuests());
   const [activeRealm, setActiveRealm] = useState<RealmType>('garden');
   const [activeMobileTab, setActiveMobileTab] = useState<MainTab>('habits');
+
+  // Selected 3D Object for Inspector
+  const [selected3DObject, setSelected3DObject] = useState<Interactive3DObject | null>(null);
 
   // Modals state
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
@@ -63,6 +66,7 @@ export default function Home() {
   // Switch Active Realm
   const handleSelectRealm = (realm: RealmType) => {
     setActiveRealm(realm);
+    setSelected3DObject(null);
     const updatedUser = { ...user, activeRealm: realm };
     setUser(updatedUser);
     storage.saveUserProfile(updatedUser);
@@ -197,7 +201,7 @@ export default function Home() {
     } else {
       const newHabit: Habit = {
         id: `h-${Date.now()}`,
-        title: habitData.title || 'New Habit',
+        title: habitData.title || 'New Goal',
         description: habitData.description || '',
         category: habitData.category || 'Health',
         difficulty: habitData.difficulty || 'Medium',
@@ -228,62 +232,28 @@ export default function Home() {
     storage.saveHabits(updated);
   };
 
-  // Upgrade Structure
-  const handleUpgradeStructure = (structureId: string) => {
+  // Upgrade Structure from Inspector
+  const handleUpgrade3DStructure = (structureId: string) => {
     const currentProg = realms[activeRealm];
-    const structure = currentProg.placedStructures.find((s) => s.id === structureId);
-    if (!structure) return;
-
-    const cost = (structure.level + 1) * 35;
+    const cost = ( (selected3DObject?.level || 1) + 1 ) * 35;
     if (currentProg.resourceAmount < cost) return;
-
-    const updatedStructures = currentProg.placedStructures.map((s) =>
-      s.id === structureId ? { ...s, level: s.level + 1, resourcePerDay: (s.resourcePerDay || 5) + 4 } : s
-    );
 
     const updatedRealms = {
       ...realms,
       [activeRealm]: {
         ...currentProg,
         resourceAmount: currentProg.resourceAmount - cost,
-        placedStructures: updatedStructures,
       },
     };
     setRealms(updatedRealms);
     storage.saveRealms(updatedRealms);
-  };
 
-  // Add Structure Blueprint to Realm
-  const handleAddStructure = (realmType: RealmType, itemKey: string) => {
-    const currentProg = realms[realmType];
-    const meta = REALM_DEFINITIONS[realmType];
-    const blueprint = meta.availableStructures.find((s) => s.itemKey === itemKey);
-    if (!blueprint) return;
-
-    if (currentProg.resourceAmount < blueprint.cost) return;
-
-    const newPlaced: PlacedStructure = {
-      id: `p-${Date.now()}`,
-      itemKey: blueprint.itemKey,
-      name: blueprint.name,
-      x: currentProg.placedStructures.length % 5,
-      y: Math.floor(currentProg.placedStructures.length / 5),
-      tier: blueprint.tierRequired,
-      level: 1,
-      icon: blueprint.icon,
-      resourcePerDay: 5 * blueprint.tierRequired,
-    };
-
-    const updatedRealms = {
-      ...realms,
-      [realmType]: {
-        ...currentProg,
-        resourceAmount: currentProg.resourceAmount - blueprint.cost,
-        placedStructures: [...currentProg.placedStructures, newPlaced],
-      },
-    };
-    setRealms(updatedRealms);
-    storage.saveRealms(updatedRealms);
+    if (selected3DObject) {
+      setSelected3DObject({
+        ...selected3DObject,
+        level: selected3DObject.level + 1,
+      });
+    }
   };
 
   // Unlock Tech Node
@@ -292,7 +262,6 @@ export default function Home() {
     setTechTree(updatedTech);
     storage.saveTechTree(updatedTech);
 
-    // Deduct user coins & realm resources
     const updatedUser = { ...user, coins: Math.max(0, user.coins - cost) };
     setUser(updatedUser);
     storage.saveUserProfile(updatedUser);
@@ -373,10 +342,10 @@ export default function Home() {
 
   if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080c14] text-slate-400">
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <span>Awakening Virtual Realms...</span>
+      <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-[#71717a]">
+        <div className="flex items-center gap-2.5 text-xs font-semibold">
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span>Loading 3D Spatial Canvas...</span>
         </div>
       </div>
     );
@@ -385,7 +354,7 @@ export default function Home() {
   const currentRealmProg = realms[activeRealm];
 
   return (
-    <div className="min-h-screen pb-20 md:pb-12 text-slate-100 flex flex-col">
+    <div className="min-h-screen pb-16 md:pb-8 text-[#f4f4f5] flex flex-col bg-[#09090b]">
       {/* Top Header HUD */}
       <HeaderHUD
         user={user}
@@ -394,49 +363,41 @@ export default function Home() {
         onRefreshData={refreshAllData}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-5 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 space-y-4">
         {/* Realm Selector Switcher Bar */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Globe2 className="w-3.5 h-3.5 text-emerald-400" />
-              Select Active World to Grow
-            </span>
-            <StreakMultiplierBadge
-              multiplier={user.multiplier}
-              streakShields={user.streakShields}
-              longestStreak={user.longestStreakEver}
-            />
-          </div>
-          <RealmSelector
-            activeRealm={activeRealm}
-            realms={realms}
-            onSelectRealm={handleSelectRealm}
-          />
-        </div>
+        <RealmSelector
+          activeRealm={activeRealm}
+          realms={realms}
+          onSelectRealm={handleSelectRealm}
+        />
 
         {/* Main Content Layout: 2-Column Desktop View / Mobile Tabs */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT COLUMN: Interactive Realm Canvas & Quests */}
-          <div className={`lg:col-span-6 space-y-6 ${activeMobileTab === 'realm' || activeMobileTab === 'habits' ? 'block' : 'hidden md:block'}`}>
-            {/* Interactive Visual Growth Canvas */}
-            <RealmCanvas
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* LEFT COLUMN: 3D Interactive WebGL Viewport & Building Inspector */}
+          <div className={`lg:col-span-6 space-y-3.5 ${activeMobileTab === 'realm' || activeMobileTab === 'habits' ? 'block' : 'hidden md:block'}`}>
+            {/* Real 3D WebGL Canvas */}
+            <ThreeRealmCanvas
               realmProg={currentRealmProg}
-              onUpgradeStructure={handleUpgradeStructure}
-              onAddStructure={handleAddStructure}
-              onOpenCreateGoalModal={() => {
-                setEditingHabit(null);
-                setIsHabitModalOpen(true);
-              }}
+              onSelectStructure={(obj) => setSelected3DObject(obj)}
               onInteractHarvest={handleCanvasInteractHarvest}
             />
+
+            {/* Slide-in Building Detail Inspector */}
+            {selected3DObject && (
+              <BuildingInspector
+                structure={selected3DObject}
+                realmProg={currentRealmProg}
+                onClose={() => setSelected3DObject(null)}
+                onUpgrade={handleUpgrade3DStructure}
+              />
+            )}
 
             {/* Daily Quests & Challenges */}
             <DailyQuests quests={quests} onClaimQuest={handleClaimQuest} />
           </div>
 
           {/* RIGHT COLUMN: Habit Tracker List & Analytics Heatmap */}
-          <div className={`lg:col-span-6 space-y-6 ${activeMobileTab === 'habits' || activeMobileTab === 'quests' ? 'block' : 'hidden md:block'}`}>
+          <div className={`lg:col-span-6 space-y-3.5 ${activeMobileTab === 'habits' || activeMobileTab === 'quests' ? 'block' : 'hidden md:block'}`}>
             {/* Habit Tracker List */}
             <HabitList
               habits={habits}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DayOfWeek, Habit, HabitCategory, HabitDifficulty, RealmType, TimeOfDay } from '@/lib/types';
 import { REALM_DEFINITIONS, RealmGoalPreset } from '@/lib/realm-config';
-import { X, Sparkles, Plus, Check, Flower2, ShieldAlert, Castle, Rocket, Wand2, Globe2, Zap } from 'lucide-react';
+import { X, Check, Plus, Flower2, ShieldAlert, Castle, Rocket, Wand2, Globe2 } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 
 interface HabitModalProps {
@@ -70,17 +70,17 @@ export const HabitModal: React.FC<HabitModalProps> = ({
   const getRealmIcon = (type: RealmType | 'all') => {
     switch (type) {
       case 'garden':
-        return <Flower2 className="w-4 h-4 text-emerald-400" />;
+        return <Flower2 className="w-3.5 h-3.5 text-emerald-400" />;
       case 'military':
-        return <ShieldAlert className="w-4 h-4 text-blue-400" />;
+        return <ShieldAlert className="w-3.5 h-3.5 text-blue-400" />;
       case 'town':
-        return <Castle className="w-4 h-4 text-amber-400" />;
+        return <Castle className="w-3.5 h-3.5 text-amber-400" />;
       case 'space':
-        return <Rocket className="w-4 h-4 text-purple-400" />;
+        return <Rocket className="w-3.5 h-3.5 text-purple-400" />;
       case 'arcane':
-        return <Wand2 className="w-4 h-4 text-pink-400" />;
+        return <Wand2 className="w-3.5 h-3.5 text-pink-400" />;
       default:
-        return <Globe2 className="w-4 h-4 text-slate-300" />;
+        return <Globe2 className="w-3.5 h-3.5 text-slate-400" />;
     }
   };
 
@@ -125,8 +125,8 @@ export const HabitModal: React.FC<HabitModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-xl bg-[#121215] border border-[#27272a] rounded-xl p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           type="button"
@@ -134,40 +134,32 @@ export const HabitModal: React.FC<HabitModalProps> = ({
             soundManager.playTap();
             onClose();
           }}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-md text-[#a1a1aa] hover:text-white bg-[#18181b] hover:bg-[#27272a] transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-slate-950 shadow-lg">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-white">
-              {initialHabit ? 'Edit Realm Goal Blueprint' : 'Forge New Goal & Select Realm'}
-            </h2>
-            <p className="text-xs text-slate-400">
-              Select which virtual realm this habit will nurture and expand.
-            </p>
-          </div>
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-white">
+            {initialHabit ? 'Edit Goal Configuration' : 'Set New Habit / Goal'}
+          </h3>
+          <p className="text-xs text-[#71717a]">
+            Assign this daily discipline to expand and nurture your chosen 3D realm.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* STEP 1: HERO REALM SELECTOR */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* STEP 1: REALM SELECTION */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>Step 1: Choose Realm for this Goal</span>
-              <span className="text-[10px] text-emerald-400 font-semibold">(Directs XP & Resources)</span>
+            <label className="block text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-1.5">
+              1. Target Realm
             </label>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
               {realmKeys.map((rKey) => {
                 const isSelected = targetRealm === rKey;
                 const meta = rKey !== 'all' ? REALM_DEFINITIONS[rKey] : null;
-                const name = meta ? meta.name : 'Universal Core';
-                const sub = meta ? meta.title.split(' ')[0] + ' Realm' : 'Grows Active Realm';
+                const name = meta ? meta.name.split(' ')[0] : 'All';
 
                 return (
                   <button
@@ -177,85 +169,51 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                       soundManager.playTap();
                       setTargetRealm(rKey);
                     }}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer select-none flex flex-col justify-between ${
+                    className={`p-2 rounded-md border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
                       isSelected
-                        ? 'bg-slate-800 border-white/40 shadow-lg scale-102'
-                        : 'bg-slate-950/60 hover:bg-slate-800/50 border-slate-800/80 text-slate-400'
+                        ? 'bg-[#18181b] border-[#3f3f46] text-white shadow-sm'
+                        : 'bg-[#09090b] border-[#27272a] text-[#71717a] hover:text-[#a1a1aa]'
                     }`}
-                    style={{
-                      borderColor: isSelected ? meta?.accentColor || '#10b981' : undefined,
-                      boxShadow: isSelected ? `0 0 20px -5px ${meta?.glowColor || 'rgba(16,185,129,0.4)'}` : undefined,
-                    }}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-700/50">
-                        {getRealmIcon(rKey)}
-                      </div>
-                      {isSelected && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      )}
-                    </div>
-                    <div>
-                      <div className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                        {name}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">{sub}</div>
-                    </div>
+                    {getRealmIcon(rKey)}
+                    <span className="text-[10px] font-semibold truncate">{name}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* REALM PRIMARY OBJECTIVE & PRESETS BANNER */}
+          {/* BLUEPRINTS PRESETS */}
           {selectedMeta && (
-            <div className="glass-panel p-4 rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/80 to-slate-950/80 space-y-3 animate-fadeIn">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: selectedMeta.accentColor }}>
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>{selectedMeta.name} Objective: {selectedMeta.primaryGoalTitle}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                    {selectedMeta.primaryGoalDescription}
-                  </p>
-                </div>
-              </div>
-
-              {/* One-Click Presets for this Realm */}
-              <div>
-                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                  Suggested Blueprints for {selectedMeta.name}:
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {selectedMeta.goalPresets.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleApplyPreset(preset)}
-                      className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-600 text-left transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-200 group-hover:text-white">
-                        <span className="truncate">{preset.title}</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-amber-300 shrink-0 ml-1">
-                          {preset.difficulty}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                        {preset.growthImpact}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            <div className="p-3 rounded-lg bg-[#09090b] border border-[#27272a] space-y-2">
+              <span className="text-[10px] font-semibold text-[#a1a1aa] uppercase tracking-wider block">
+                {selectedMeta.name} Goal Templates:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {selectedMeta.goalPresets.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleApplyPreset(preset)}
+                    className="p-2 rounded-md bg-[#121215] hover:bg-[#18181b] border border-[#27272a] text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between text-xs font-medium text-[#f4f4f5] group-hover:text-white">
+                      <span className="truncate">{preset.title}</span>
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-[#18181b] text-[#a1a1aa] shrink-0 ml-1">
+                        {preset.difficulty}
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* STEP 2: GOAL TITLE & DESCRIPTION */}
+          {/* GOAL TITLE & DESCRIPTION */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                Goal / Habit Name *
+              <label className="block text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-1">
+                Goal Title *
               </label>
               <input
                 type="text"
@@ -263,32 +221,31 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. 45-Minute Deep Coding Sprint"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="w-full px-3 py-2 rounded-md bg-[#09090b] border border-[#27272a] text-white placeholder-[#71717a] text-xs focus:outline-none focus:border-[#3f3f46]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                Description & Strategy Notes
+              <label className="block text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-1">
+                Notes & Execution Strategy
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Notes on execution, rules, or how this empowers your realm..."
+                placeholder="Strategy notes on execution rules or habits..."
                 rows={2}
-                className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="w-full px-3 py-1.5 rounded-md bg-[#09090b] border border-[#27272a] text-white placeholder-[#71717a] text-xs focus:outline-none focus:border-[#3f3f46]"
               />
             </div>
           </div>
 
-          {/* STEP 3: CATEGORY & DIFFICULTY */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Category */}
+          {/* CATEGORY & DIFFICULTY */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-1">
                 Category
               </label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-1">
                 {categories.map((cat) => (
                   <button
                     key={cat}
@@ -297,10 +254,10 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                       soundManager.playTap();
                       setCategory(cat);
                     }}
-                    className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer truncate ${
+                    className={`py-1 px-1.5 rounded text-[11px] font-medium border text-center transition-colors cursor-pointer truncate ${
                       category === cat
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-white text-black border-white'
+                        : 'bg-[#09090b] border-[#27272a] text-[#71717a] hover:text-[#a1a1aa]'
                     }`}
                   >
                     {cat}
@@ -309,108 +266,76 @@ export const HabitModal: React.FC<HabitModalProps> = ({
               </div>
             </div>
 
-            {/* Difficulty */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                Difficulty & XP Yield
+              <label className="block text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-1">
+                Difficulty
               </label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {difficulties.map((diff) => {
-                  const xpMap = { Easy: 15, Medium: 25, Hard: 45, Epic: 80 };
-                  return (
-                    <button
-                      key={diff}
-                      type="button"
-                      onClick={() => {
-                        soundManager.playTap();
-                        setDifficulty(diff);
-                      }}
-                      className={`py-1.5 px-1 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
-                        difficulty === diff
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <div>{diff}</div>
-                      <div className="text-[10px] text-slate-400 opacity-80">+{xpMap[diff]}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* TIME OF DAY & SCHEDULE DAYS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                Target Time of Day
-              </label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {timesOfDay.map((time) => (
+              <div className="grid grid-cols-4 gap-1">
+                {difficulties.map((diff) => (
                   <button
-                    key={time}
+                    key={diff}
                     type="button"
                     onClick={() => {
                       soundManager.playTap();
-                      setTargetTimeOfDay(time);
+                      setDifficulty(diff);
                     }}
-                    className={`py-1.5 px-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      targetTimeOfDay === time
-                        ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    className={`py-1 px-1 rounded text-[11px] font-medium border text-center transition-colors cursor-pointer ${
+                      difficulty === diff
+                        ? 'bg-white text-black border-white'
+                        : 'bg-[#09090b] border-[#27272a] text-[#71717a] hover:text-[#a1a1aa]'
                     }`}
                   >
-                    {time}
+                    {diff}
                   </button>
                 ))}
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                Schedule Days
-              </label>
-              <div className="flex items-center justify-between gap-1">
-                {days.map((day) => {
-                  const isSelected = scheduledDays.includes(day.key);
-                  return (
-                    <button
-                      key={day.key}
-                      type="button"
-                      onClick={() => toggleDay(day.key)}
-                      className={`flex-1 h-8 rounded-lg text-xs font-bold transition-all flex items-center justify-center cursor-pointer border ${
-                        isSelected
-                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
-                      }`}
-                    >
-                      {day.label}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* SCHEDULE DAYS */}
+          <div>
+            <label className="block text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-1">
+              Active Days
+            </label>
+            <div className="flex items-center gap-1">
+              {days.map((day) => {
+                const isSelected = scheduledDays.includes(day.key);
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    onClick={() => toggleDay(day.key)}
+                    className={`flex-1 h-7 rounded text-xs font-semibold transition-colors flex items-center justify-center cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#27272a] text-white border-[#3f3f46]'
+                        : 'bg-[#09090b] text-[#71717a] border-[#27272a] hover:bg-[#18181b]'
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          {/* Actions */}
+          <div className="pt-3 border-t border-[#27272a] flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => {
                 soundManager.playTap();
                 onClose();
               }}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-md text-xs font-medium text-[#a1a1aa] hover:text-white bg-[#18181b] hover:bg-[#27272a] transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold bg-white hover:bg-neutral-200 text-black shadow-sm transition-colors cursor-pointer"
             >
-              {initialHabit ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              <span>{initialHabit ? 'Save Goal Changes' : 'Forge Realm Goal'}</span>
+              {initialHabit ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              <span>{initialHabit ? 'Save Changes' : 'Confirm Goal'}</span>
             </button>
           </div>
         </form>

@@ -3,7 +3,7 @@
 import React from 'react';
 import { RealmProgression, RealmType, TechUnlock } from '@/lib/types';
 import { REALM_DEFINITIONS } from '@/lib/realm-config';
-import { X, Lock, CheckCircle2, Zap, Sparkles } from 'lucide-react';
+import { X, Lock, Check, Zap, Sparkles, GitFork } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 
 interface TechTreeModalProps {
@@ -27,18 +27,12 @@ export const TechTreeModal: React.FC<TechTreeModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const realmMeta = REALM_DEFINITIONS[activeRealm];
+  const meta = REALM_DEFINITIONS[activeRealm];
   const realmTech = techTree.filter((t) => t.realm === activeRealm);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div
-        className="w-full max-w-2xl bg-slate-900 border rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
-        style={{
-          borderColor: `${realmMeta.accentColor}50`,
-          boxShadow: `0 0 40px -10px ${realmMeta.glowColor}`,
-        }}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-2xl bg-[#121215] border border-[#27272a] rounded-xl p-5 shadow-2xl relative max-h-[88vh] overflow-y-auto">
         {/* Close Button */}
         <button
           type="button"
@@ -46,123 +40,94 @@ export const TechTreeModal: React.FC<TechTreeModalProps> = ({
             soundManager.playTap();
             onClose();
           }}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-md text-[#a1a1aa] hover:text-white bg-[#18181b] hover:bg-[#27272a] transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg"
-            style={{
-              backgroundColor: `${realmMeta.accentColor}25`,
-              color: realmMeta.accentColor,
-              border: `1px solid ${realmMeta.accentColor}40`,
-            }}
-          >
-            <Zap className="w-6 h-6" />
+        {/* Modal Header */}
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="p-2 rounded-md bg-[#18181b] border border-[#27272a] text-blue-400">
+            <GitFork className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>{realmMeta.name} &bull; Research & Tech Tree</span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              Unlock passive bonuses, streak multipliers, and specialized realm perks.
+            <h3 className="text-sm font-bold text-white">
+              {meta.name} Research & Tech Tree
+            </h3>
+            <p className="text-xs text-[#71717a]">
+              Unlock persistent passive bonuses and realm modifiers with earned coins and resources.
             </p>
           </div>
         </div>
 
-        {/* User Balance Bar */}
-        <div className="glass-panel p-3.5 rounded-xl border border-slate-800 flex items-center justify-between mb-6 text-xs">
-          <div className="flex items-center gap-2 text-slate-300">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Available Coins: <strong className="text-amber-300 font-bold">{userCoins}</strong></span>
+        {/* Available Balances */}
+        <div className="flex items-center gap-3 p-2.5 rounded-md bg-[#09090b] border border-[#27272a] mb-4 text-xs font-medium">
+          <div className="flex items-center gap-1.5 text-amber-400">
+            <span>🪙</span>
+            <span className="text-white font-semibold">{userCoins} Coins</span>
           </div>
-          <div className="flex items-center gap-2 text-slate-300">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: realmMeta.accentColor }} />
-            <span>
-              {realmMeta.resourceName}: <strong className="text-white font-bold">{realmProg.resourceAmount}</strong>
-            </span>
+          <div className="w-[1px] h-3 bg-[#27272a]" />
+          <div className="flex items-center gap-1.5 text-slate-300">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.accentColor }} />
+            <span className="text-white font-semibold">{realmProg.resourceAmount} {realmProg.resourceName}</span>
           </div>
         </div>
 
         {/* Tech Tree Nodes */}
-        <div className="space-y-3.5">
+        <div className="space-y-2">
           {realmTech.map((tech) => {
             const canAfford = userCoins >= tech.cost && realmProg.resourceAmount >= tech.resourceCost;
-            const stageAllowed = realmProg.growthStage >= tech.tier;
 
             return (
               <div
                 key={tech.id}
-                className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
                   tech.unlocked
-                    ? 'bg-slate-900/40 border-emerald-500/30'
-                    : stageAllowed
-                    ? 'bg-slate-900/80 border-slate-700/80 hover:border-slate-600 shadow'
-                    : 'bg-slate-950/60 border-slate-900 opacity-60'
+                    ? 'bg-[#18181b] border-[#3f3f46]'
+                    : 'bg-[#141418] border-[#27272a]'
                 }`}
               >
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-[#18181b] border border-[#27272a] text-[#a1a1aa]">
                       Tier {tech.tier}
                     </span>
-                    <h3 className="text-sm font-bold text-white">{tech.name}</h3>
-                    {tech.unlocked && (
-                      <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Active
+                    <h4 className="text-xs font-bold text-white truncate">{tech.name}</h4>
+                    {tech.bonusEffect && (
+                      <span className="text-[10px] text-emerald-400 font-medium">
+                        &bull; {tech.bonusEffect}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-300">{tech.description}</p>
-                  <div className="text-[11px] font-semibold text-emerald-400/90 pt-0.5">
-                    Effect: {tech.bonusEffect}
-                  </div>
+                  <p className="text-[11px] text-[#71717a] leading-relaxed">
+                    {tech.description}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
-                  {!tech.unlocked && (
-                    <div className="text-right text-xs">
-                      <div className="font-semibold text-amber-300">{tech.cost} Coins</div>
-                      <div className="text-[11px] text-slate-400">
-                        +{tech.resourceCost} {realmMeta.resourceName.split(' ')[0]}
-                      </div>
-                    </div>
-                  )}
-
+                <div className="flex items-center gap-2 shrink-0">
                   {tech.unlocked ? (
-                    <div className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
-                      Mastered
+                    <div className="px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>Unlocked</span>
                     </div>
                   ) : (
                     <button
                       type="button"
-                      disabled={!stageAllowed || !canAfford}
+                      disabled={!canAfford}
                       onClick={() => {
-                        if (stageAllowed && canAfford) {
+                        if (canAfford) {
                           soundManager.playUnlock();
                           onUnlockTech(tech.id, tech.cost, tech.resourceCost);
                         }
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
-                        stageAllowed && canAfford
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white cursor-pointer hover:scale-105 active:scale-95'
-                          : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                      className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                        canAfford
+                          ? 'bg-white hover:bg-neutral-200 text-black cursor-pointer shadow-sm'
+                          : 'bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed'
                       }`}
                     >
-                      {!stageAllowed ? (
-                        <>
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>Req. Stage {tech.tier}</span>
-                        </>
-                      ) : !canAfford ? (
-                        <span>Insufficient Funds</span>
-                      ) : (
-                        <span>Research Perk</span>
-                      )}
+                      <Lock className="w-3 h-3" />
+                      <span>{tech.cost}g + {tech.resourceCost} {meta.resourceName.split(' ')[0]}</span>
                     </button>
                   )}
                 </div>

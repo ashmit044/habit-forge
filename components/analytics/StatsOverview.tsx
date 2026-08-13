@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { UserProfile, RealmProgression, RealmType } from '@/lib/types';
+import { RealmProgression, RealmType, UserProfile } from '@/lib/types';
 import { REALM_DEFINITIONS } from '@/lib/realm-config';
-import { Trophy, Flame, Zap, ShieldCheck, Target, Sparkles } from 'lucide-react';
+import { Zap, Shield, Trophy, Target, Globe } from 'lucide-react';
 
 interface StatsOverviewProps {
   user: UserProfile;
@@ -11,59 +11,63 @@ interface StatsOverviewProps {
 }
 
 export const StatsOverview: React.FC<StatsOverviewProps> = ({ user, realms }) => {
-  const activeMeta = REALM_DEFINITIONS[user.activeRealm];
-  const activeProg = realms[user.activeRealm];
-
-  const statCards = [
-    {
-      title: 'Master Level',
-      value: `Level ${user.level}`,
-      subtitle: `${user.xp} / ${user.xpToNextLevel} Total XP`,
-      icon: <Trophy className="w-5 h-5 text-amber-400" />,
-      borderColor: 'border-amber-500/30',
-    },
-    {
-      title: 'Current Streak',
-      value: `${user.longestStreakEver} Days`,
-      subtitle: `${user.multiplier.toFixed(1)}x XP Multiplier`,
-      icon: <Flame className="w-5 h-5 text-orange-400" />,
-      borderColor: 'border-orange-500/30',
-    },
-    {
-      title: 'Habits Conquered',
-      value: `${user.totalHabitsCompleted}`,
-      subtitle: 'Across all 5 virtual realms',
-      icon: <Target className="w-5 h-5 text-emerald-400" />,
-      borderColor: 'border-emerald-500/30',
-    },
-    {
-      title: 'Active Realm Stage',
-      value: `Stage ${activeProg.growthStage}/5`,
-      subtitle: activeMeta.name,
-      icon: <Zap className="w-5 h-5" style={{ color: activeMeta.accentColor }} />,
-      borderColor: 'border-blue-500/30',
-    },
-  ];
+  const realmKeys: RealmType[] = ['garden', 'military', 'town', 'space', 'arcane'];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {statCards.map((stat, idx) => (
-        <div
-          key={idx}
-          className={`glass-panel p-4 rounded-2xl border ${stat.borderColor} flex flex-col justify-between`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400">{stat.title}</span>
-            <div className="p-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
-              {stat.icon}
+    <div className="p-4 rounded-xl studio-panel space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <Globe className="w-3.5 h-3.5 text-blue-400" />
+          Realm Overview & Empire Stats
+        </h3>
+        <span className="text-[11px] text-[#71717a]">
+          Combo Multiplier: <strong className="text-white">{user.multiplier.toFixed(1)}x</strong>
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+        {realmKeys.map((realmKey) => {
+          const meta = REALM_DEFINITIONS[realmKey];
+          const prog = realms[realmKey];
+
+          return (
+            <div
+              key={realmKey}
+              className="p-2.5 rounded-lg bg-[#141418] border border-[#27272a] space-y-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white truncate">
+                  {meta.name.split(' ')[0]}
+                </span>
+                <span
+                  className="text-[9px] px-1 py-0.2 rounded font-bold"
+                  style={{
+                    backgroundColor: `${meta.accentColor}20`,
+                    color: meta.accentColor,
+                  }}
+                >
+                  Stage {prog.growthStage}
+                </span>
+              </div>
+
+              <div className="text-[11px] text-[#71717a]">
+                <span>{prog.resourceAmount} </span>
+                <span>{prog.resourceName.split(' ')[0]}</span>
+              </div>
+
+              <div className="w-full h-1 rounded-full bg-[#27272a] overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, Math.round((prog.currentPoints / prog.pointsToNextStage) * 100))}%`,
+                    backgroundColor: meta.accentColor,
+                  }}
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="text-xl font-bold text-white tracking-tight">{stat.value}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{stat.subtitle}</div>
-          </div>
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 };

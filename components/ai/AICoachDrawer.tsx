@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { Habit, RealmType } from '@/lib/types';
+import { REALM_DEFINITIONS } from '@/lib/realm-config';
 import { AIAssistant, AIRecommendation, GoalBreakdown } from '@/lib/ai-assistant';
-import { X, Bot, Sparkles, Wand2, Plus, Target, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, Bot, Sparkles, Plus, ArrowRight } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
-import confetti from 'canvas-confetti';
 
 interface AICoachDrawerProps {
   isOpen: boolean;
@@ -22,285 +22,162 @@ export const AICoachDrawer: React.FC<AICoachDrawerProps> = ({
   onClose,
   onAddHabit,
 }) => {
-  const [activeTab, setActiveTab] = useState<'coach' | 'breakdown' | 'generator'>('coach');
-  const [goalQuery, setGoalQuery] = useState('');
-  const [breakdownResult, setBreakdownResult] = useState<GoalBreakdown | null>(null);
-  const [generatorQuery, setGeneratorQuery] = useState('');
-  const [generatedHabits, setGeneratedHabits] = useState<AIRecommendation[]>([]);
+  const [goalInput, setGoalInput] = useState('');
+  const [breakdownRoadmap, setBreakdownRoadmap] = useState<GoalBreakdown | null>(null);
 
   if (!isOpen) return null;
 
-  const currentHour = new Date().getHours();
-  const brief = AIAssistant.getMotivationalBrief(currentHour, currentStreak, activeRealm);
+  const meta = REALM_DEFINITIONS[activeRealm];
+  const hour = new Date().getHours();
+  const briefing = AIAssistant.getMotivationalBrief(hour, currentStreak, activeRealm);
+  const suggestedHabits = AIAssistant.generateSmartSuggestions(activeRealm);
 
-  const handleGoalBreakdown = (e: React.FormEvent) => {
+  const handleGenerateRoadmap = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!goalQuery.trim()) return;
-    soundManager.playUnlock();
-    const result = AIAssistant.breakdownGoal(goalQuery.trim());
-    setBreakdownResult(result);
-  };
-
-  const handleGenerateHabits = (e: React.FormEvent) => {
-    e.preventDefault();
+    if (!goalInput.trim()) return;
     soundManager.playTap();
-    const results = AIAssistant.generateSmartSuggestions(generatorQuery.trim() || 'productivity');
-    setGeneratedHabits(results);
+    const roadmap = AIAssistant.breakdownGoal(goalInput.trim());
+    setBreakdownRoadmap(roadmap);
   };
 
-  const handleAdoptHabit = (rec: AIRecommendation) => {
+  const handleAddSuggestedHabit = (suggestion: AIRecommendation) => {
     soundManager.playUnlock();
-    try {
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
-    } catch {}
     onAddHabit({
-      title: rec.title,
-      description: `${rec.description} (AI Coach: ${rec.motivation})`,
-      category: rec.category,
-      difficulty: rec.difficulty,
-      targetTimeOfDay: rec.targetTimeOfDay,
-      targetRealm: rec.targetRealm,
-      scheduledDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+      title: suggestion.title,
+      description: suggestion.description,
+      category: suggestion.category,
+      difficulty: suggestion.difficulty,
+      targetTimeOfDay: suggestion.targetTimeOfDay,
+      targetRealm: suggestion.targetRealm || activeRealm,
       frequency: 'daily',
+      scheduledDays: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-2xl bg-slate-900 border border-violet-500/40 rounded-3xl p-6 shadow-[0_0_40px_rgba(139,92,246,0.2)] relative max-h-[90vh] overflow-y-auto">
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={() => {
-            soundManager.playTap();
-            onClose();
-          }}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/75 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-md h-full bg-[#121215] border-l border-[#27272a] p-5 shadow-2xl overflow-y-auto space-y-5 animate-slideInRight flex flex-col justify-between">
+        <div className="space-y-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-[#18181b] border border-[#27272a] text-violet-400">
+                <Bot className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">AI Habit Strategist</h3>
+                <span className="text-[11px] text-[#71717a]">Goal breakdown & optimization</span>
+              </div>
+            </div>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-violet-500/30">
-            <Bot className="w-6 h-6" />
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playTap();
+                onClose();
+              }}
+              className="p-1.5 rounded-md text-[#a1a1aa] hover:text-white bg-[#18181b] hover:bg-[#27272a] transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>AI Quest Master & Habit Coach</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 uppercase">
-                Active
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              Personalized goal strategy, habit optimization, and realm empowerment.
+
+          {/* Daily Strategic Briefing */}
+          <div className="p-3.5 rounded-lg bg-[#09090b] border border-[#27272a] space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: meta.accentColor }}>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{meta.name} Daily Briefing</span>
+            </div>
+            <p className="text-xs text-[#f4f4f5] italic leading-relaxed">
+              {briefing.quote}
+            </p>
+            <p className="text-[11px] text-[#71717a] pt-1 leading-normal">
+              {briefing.message}
             </p>
           </div>
-        </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-950/80 border border-slate-800 mb-5">
-          <button
-            type="button"
-            onClick={() => {
-              soundManager.playTap();
-              setActiveTab('coach');
-            }}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'coach'
-                ? 'bg-violet-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Daily Briefing
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              soundManager.playTap();
-              setActiveTab('breakdown');
-            }}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'breakdown'
-                ? 'bg-violet-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Goal Breakdown
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              soundManager.playTap();
-              setActiveTab('generator');
-            }}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'generator'
-                ? 'bg-violet-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Smart Generator
-          </button>
-        </div>
-
-        {/* TAB 1: Daily Briefing */}
-        {activeTab === 'coach' && (
-          <div className="space-y-4 animate-fadeIn">
-            <div className="glass-panel p-5 rounded-2xl border border-violet-500/30 bg-gradient-to-b from-violet-950/30 to-slate-900 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-violet-400" />
-                  <span>{brief.title}</span>
-                </h3>
-                <span className="text-xs text-violet-300 font-semibold px-2 py-0.5 rounded-full bg-violet-500/20">
-                  {currentStreak} Day Streak
-                </span>
-              </div>
-
-              <p className="text-sm text-slate-300 leading-relaxed">{brief.message}</p>
-
-              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-violet-500/20 text-xs text-violet-200 italic">
-                {brief.quote}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Coach Pro-Tips
-              </h4>
-              <ul className="text-xs text-slate-400 space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li>Stack new habits directly onto existing morning coffee or evening routines.</li>
-                <li>Never allow two missed days in a row; use your Streak Aegis Shield on rough days.</li>
-                <li>Allocate high-difficulty habits to your favorite realm for massive growth spurts.</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: Goal Breakdown */}
-        {activeTab === 'breakdown' && (
-          <div className="space-y-4 animate-fadeIn">
-            <form onSubmit={handleGoalBreakdown} className="flex gap-2">
+          {/* Goal Breakdown Assistant */}
+          <div className="space-y-2.5">
+            <label className="block text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider">
+              Goal Breakdown Assistant
+            </label>
+            <form onSubmit={handleGenerateRoadmap} className="flex gap-1.5">
               <input
                 type="text"
-                value={goalQuery}
-                onChange={(e) => setGoalQuery(e.target.value)}
-                placeholder="e.g. Run a 10km marathon, Learn Full-Stack React, Meditate daily"
-                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+                placeholder="e.g. Master Full-Stack TypeScript..."
+                className="flex-1 px-3 py-1.5 rounded-md bg-[#09090b] border border-[#27272a] text-xs text-white placeholder-[#71717a] focus:outline-none focus:border-[#3f3f46]"
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white transition-colors cursor-pointer shadow"
+                className="px-3 py-1.5 rounded-md text-xs font-semibold bg-white hover:bg-neutral-200 text-black transition-colors cursor-pointer shrink-0"
               >
                 Break Down
               </button>
             </form>
 
-            {breakdownResult && (
-              <div className="space-y-3 pt-2">
-                <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  4-Week Progressive Roadmap: &quot;{breakdownResult.goal}&quot;
-                </div>
-
-                <div className="space-y-2.5">
-                  {breakdownResult.milestones.map((m) => (
-                    <div
-                      key={m.week}
-                      className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-start justify-between gap-3"
-                    >
-                      <div>
-                        <div className="text-xs font-bold text-violet-400">
-                          Week {m.week}: {m.title}
-                        </div>
-                        <p className="text-xs text-slate-300 mt-1">{m.actionableHabit}</p>
+            {/* Generated 4-Week Roadmap */}
+            {breakdownRoadmap && (
+              <div className="p-3 rounded-lg bg-[#141418] border border-[#27272a] space-y-2 mt-2">
+                <span className="text-[11px] font-bold text-white block">
+                  Roadmap for: &ldquo;{breakdownRoadmap.goal}&rdquo;
+                </span>
+                <div className="space-y-1.5 text-xs">
+                  {breakdownRoadmap.milestones.map((m, idx) => (
+                    <div key={idx} className="p-2 rounded bg-[#09090b] border border-[#27272a]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-semibold text-emerald-400 block">Week {m.week}: {m.title}</span>
+                        <span className="text-[9px] text-amber-400 font-bold">+{m.xpBonus} XP</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleAdoptHabit({
-                            title: m.actionableHabit,
-                            category: 'Routine',
-                            difficulty: 'Medium',
-                            targetTimeOfDay: 'Morning',
-                            targetRealm: activeRealm,
-                            description: `Milestone Week ${m.week} for ${breakdownResult.goal}`,
-                            motivation: `+${m.xpBonus} XP Bonus Milestone`,
-                          })
-                        }
-                        className="shrink-0 p-2 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add Habit</span>
-                      </button>
+                      <p className="text-[11px] text-[#a1a1aa] mt-0.5">{m.actionableHabit}</p>
                     </div>
                   ))}
                 </div>
-
-                <p className="text-xs text-slate-400 italic pt-1">{breakdownResult.advice}</p>
               </div>
             )}
           </div>
-        )}
 
-        {/* TAB 3: Smart Generator */}
-        {activeTab === 'generator' && (
-          <div className="space-y-4 animate-fadeIn">
-            <form onSubmit={handleGenerateHabits} className="flex gap-2">
-              <input
-                type="text"
-                value={generatorQuery}
-                onChange={(e) => setGeneratorQuery(e.target.value)}
-                placeholder="What area do you want to optimize? (e.g. Fitness, Coding, Mindfulness)"
-                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white transition-colors cursor-pointer shadow"
-              >
-                Generate
-              </button>
-            </form>
-
-            <div className="space-y-2.5">
-              {generatedHabits.length === 0 ? (
-                <div className="text-center py-6 text-xs text-slate-500">
-                  Type a topic above to generate tailored daily habits with realm synergies!
-                </div>
-              ) : (
-                generatedHabits.map((rec, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">{rec.title}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-slate-800 text-slate-300">
-                          {rec.category}
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-amber-500/20 text-amber-300">
-                          {rec.difficulty}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300">{rec.description}</p>
-                      <p className="text-[11px] text-violet-400 font-medium">{rec.motivation}</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAdoptHabit(rec)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow hover:scale-105 active:scale-95 transition-all shrink-0"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Adopt Habit</span>
-                    </button>
+          {/* 1-Click Smart Habit Presets */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider block">
+              Suggested Daily Habits for {meta.name}
+            </span>
+            <div className="space-y-1.5">
+              {suggestedHabits.map((sh, idx) => (
+                <div
+                  key={idx}
+                  className="p-2.5 rounded-md bg-[#141418] border border-[#27272a] flex items-center justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <span className="text-xs font-semibold text-white truncate block">{sh.title}</span>
+                    <span className="text-[10px] text-[#71717a] truncate block">{sh.description}</span>
                   </div>
-                ))
-              )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddSuggestedHabit(sh)}
+                    className="p-1.5 rounded-md bg-[#18181b] hover:bg-white hover:text-black border border-[#27272a] text-[#a1a1aa] transition-colors cursor-pointer shrink-0"
+                    title="Add Habit"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Footer */}
+        <div className="pt-3 border-t border-[#27272a] text-center">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2 rounded-md text-xs font-semibold bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-[#a1a1aa] hover:text-white transition-colors cursor-pointer"
+          >
+            Close Strategist
+          </button>
+        </div>
       </div>
     </div>
   );

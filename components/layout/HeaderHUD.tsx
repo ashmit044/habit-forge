@@ -2,15 +2,15 @@
 
 import React, { useState } from 'react';
 import { UserProfile } from '@/lib/types';
-import { Trophy, Coins, Shield, Volume2, VolumeX, ShoppingBag, Sparkles, Download, Upload, Zap } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 import { storage } from '@/lib/storage';
+import { Volume2, VolumeX, Store, GitFork, Download, Upload, Shield, Award, Sparkles } from 'lucide-react';
 
 interface HeaderHUDProps {
   user: UserProfile;
   onOpenShop: () => void;
   onOpenTechTree: () => void;
-  onRefreshData: () => void;
+  onRefreshData?: () => void;
 }
 
 export const HeaderHUD: React.FC<HeaderHUDProps> = ({
@@ -20,209 +20,146 @@ export const HeaderHUD: React.FC<HeaderHUDProps> = ({
   onRefreshData,
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.isMuted());
-  const [showBackupModal, setShowBackupModal] = useState(false);
-  const [importJson, setImportJson] = useState('');
 
-  const xpPercent = Math.min(100, Math.round((user.xp / user.xpToNextLevel) * 100));
-
-  const toggleSound = () => {
+  const handleToggleSound = () => {
     const muted = soundManager.toggleMute();
     setIsMuted(muted);
     if (!muted) soundManager.playTap();
   };
 
-  const handleExport = () => {
+  const handleExportBackup = () => {
     soundManager.playTap();
-    const dataStr = storage.exportBackup();
-    const blob = new Blob([dataStr], { type: 'application/json' });
+    const backupJson = storage.exportBackup();
+    const blob = new Blob([backupJson], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `habitforge_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `habitforge-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = () => {
-    if (!importJson.trim()) return;
-    const success = storage.importBackup(importJson);
-    if (success) {
-      soundManager.playLevelUp();
-      setShowBackupModal(false);
-      onRefreshData();
-      alert('Data restored successfully!');
-    } else {
-      alert('Invalid backup JSON data.');
-    }
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        const success = storage.importBackup(content);
+        if (success) {
+          soundManager.playLevelUp();
+          if (onRefreshData) onRefreshData();
+        }
+      }
+    };
+    reader.readAsText(file);
   };
 
-  return (
-    <header className="sticky top-0 z-40 w-full glass-panel-elevated border-b border-slate-800/80 px-4 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-        {/* Brand / Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-blue-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-lg shadow-emerald-500/20">
-            ⚔️
-          </div>
-          <div>
-            <h1 className="text-sm md:text-base font-black tracking-tight text-white flex items-center gap-1.5">
-              <span>HabitForge</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider hidden sm:inline-block">
-                Realms
-              </span>
-            </h1>
-            <div className="text-[10px] text-slate-400 font-medium hidden sm:block">
-              Gamified Realm Expansion
-            </div>
-          </div>
-        </div>
+  const xpProgressPercent = Math.min(
+    100,
+    Math.round((user.xp / user.xpToNextLevel) * 100)
+  );
 
-        {/* Level & XP Progress Bar */}
-        <div className="flex-1 max-w-xs md:max-w-sm hidden sm:block">
-          <div className="flex items-center justify-between text-xs font-semibold mb-1">
-            <div className="flex items-center gap-1.5 text-amber-300">
-              <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span>Level {user.level}</span>
+  return (
+    <header className="sticky top-0 z-40 w-full border-b border-[#27272a] bg-[#09090b]/90 backdrop-blur-md px-4 py-2.5">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        {/* Brand & Player Level */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 font-bold text-xs shadow-sm">
+              HF
             </div>
-            <span className="text-slate-400 font-medium">
-              {user.xp} / {user.xpToNextLevel} XP
+            <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">
+              HabitForge
             </span>
           </div>
 
-          <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden relative border border-slate-700/50">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-700"
-              style={{ width: `${xpPercent}%` }}
-            />
+          <div className="h-4 w-[1px] bg-[#27272a] hidden sm:block" />
+
+          {/* Player Level & XP Gauge */}
+          <div className="flex items-center gap-2.5">
+            <div className="px-2 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-xs font-semibold text-white">
+              Lvl {user.level}
+            </div>
+
+            <div className="hidden sm:flex flex-col gap-1 w-28">
+              <div className="flex justify-between text-[10px] text-[#a1a1aa] font-medium leading-none">
+                <span>XP</span>
+                <span>{user.xp}/{user.xpToNextLevel}</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-[#27272a] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                  style={{ width: `${xpProgressPercent}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Action Controls & Resource Counters */}
-        <div className="flex items-center gap-2 md:gap-3">
-          {/* Coins Treasury Button */}
-          <button
-            type="button"
-            onClick={() => {
-              soundManager.playTap();
-              onOpenShop();
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all cursor-pointer shadow-sm"
-          >
-            <Coins className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span>{user.coins}g</span>
-          </button>
-
-          {/* Streak Shields Pill */}
-          <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold">
-            <Shield className="w-3.5 h-3.5 text-blue-400 fill-blue-400/20" />
-            <span>{user.streakShields}</span>
+        {/* Treasury Coins, Multiplier, and Actions */}
+        <div className="flex items-center gap-2">
+          {/* Gold Treasury */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#121215] border border-[#27272a] text-xs font-medium text-amber-400">
+            <span>🪙</span>
+            <span className="font-semibold text-white">{user.coins}</span>
           </div>
 
-          {/* Research / Tech Tree Trigger */}
+          {/* Research Tech Tree Button */}
           <button
             type="button"
             onClick={() => {
               soundManager.playTap();
               onOpenTechTree();
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer hidden md:flex"
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-xs font-medium text-[#f4f4f5] transition-colors cursor-pointer"
           >
-            <Zap className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Tech Tree</span>
+            <GitFork className="w-3.5 h-3.5 text-blue-400" />
+            <span>Research</span>
           </button>
 
-          {/* Shop Trigger */}
+          {/* Rewards Bazaar Shop Button */}
           <button
             type="button"
             onClick={() => {
               soundManager.playTap();
               onOpenShop();
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-bold transition-all cursor-pointer shadow-md"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-xs font-medium text-[#f4f4f5] transition-colors cursor-pointer"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Bazaar</span>
+            <Store className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Shop</span>
           </button>
 
-          {/* Sound Toggle */}
+          {/* Audio Toggle */}
           <button
             type="button"
-            onClick={toggleSound}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-            title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+            onClick={handleToggleSound}
+            className="p-1.5 rounded-md text-[#a1a1aa] hover:text-white bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] transition-colors cursor-pointer"
+            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
           </button>
 
-          {/* Backup / Export Trigger */}
+          {/* Backup Export */}
           <button
             type="button"
-            onClick={() => {
-              soundManager.playTap();
-              setShowBackupModal(true);
-            }}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-            title="Backup & Restore Data"
+            onClick={handleExportBackup}
+            className="p-1.5 rounded-md text-[#a1a1aa] hover:text-white bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] transition-colors cursor-pointer hidden sm:block"
+            title="Export JSON Backup"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
           </button>
+
+          {/* Backup Import */}
+          <label className="p-1.5 rounded-md text-[#a1a1aa] hover:text-white bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] transition-colors cursor-pointer hidden sm:block">
+            <Upload className="w-3.5 h-3.5" />
+            <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+          </label>
         </div>
       </div>
-
-      {/* Backup / Restore Modal */}
-      {showBackupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl relative space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Download className="w-4 h-4 text-emerald-400" />
-                <span>Save & Restore Data</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowBackupModal(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                &times;
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Export your habits, streaks, and virtual realm progression as a JSON backup file or restore previously saved data.
-            </p>
-
-            <button
-              type="button"
-              onClick={handleExport}
-              className="w-full py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Full Backup (JSON)</span>
-            </button>
-
-            <div className="pt-2 border-t border-slate-800 space-y-2">
-              <label className="block text-xs font-semibold text-slate-300">
-                Restore from JSON Backup
-              </label>
-              <textarea
-                value={importJson}
-                onChange={(e) => setImportJson(e.target.value)}
-                placeholder="Paste backup JSON string here..."
-                rows={3}
-                className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-              />
-              <button
-                type="button"
-                onClick={handleImport}
-                className="w-full py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Restore Data</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

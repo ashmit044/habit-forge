@@ -3,7 +3,7 @@
 import React from 'react';
 import { Habit } from '@/lib/types';
 import { REALM_DEFINITIONS } from '@/lib/realm-config';
-import { Check, Flame, MoreVertical, Edit2, Trash2, Clock, Sparkles } from 'lucide-react';
+import { Check, Flame, MoreVertical, Trash2, Edit2, Clock } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 import confetti from 'canvas-confetti';
 
@@ -20,171 +20,128 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const [showMenu, setShowMenu] = React.useState(false);
-
-  const getDifficultyXP = (diff: string) => {
-    switch (diff) {
-      case 'Easy':
-        return 15;
-      case 'Medium':
-        return 25;
-      case 'Hard':
-        return 45;
-      case 'Epic':
-        return 80;
-      default:
-        return 20;
-    }
-  };
-
-  const xpReward = getDifficultyXP(habit.difficulty);
-  const realmMeta = habit.targetRealm !== 'all' ? REALM_DEFINITIONS[habit.targetRealm] : null;
+  const meta = habit.targetRealm !== 'all' ? REALM_DEFINITIONS[habit.targetRealm] : null;
 
   const handleCheck = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!habit.completedToday) {
       soundManager.playCheck();
-      // Trigger mini celebratory confetti burst
-      try {
-        confetti({
-          particleCount: 25,
-          spread: 45,
-          origin: { y: 0.75 },
-          colors: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'],
-        });
-      } catch {
-        // Fallback gracefully
-      }
+      confetti({
+        particleCount: 20,
+        spread: 45,
+        origin: {
+          x: e.clientX / window.innerWidth,
+          y: e.clientY / window.innerHeight,
+        },
+        colors: [meta?.accentColor || '#10b981', '#ffffff', '#fbbf24'],
+        disableForReducedMotion: true,
+      });
     } else {
       soundManager.playTap();
     }
     onToggleComplete(habit.id);
   };
 
+  const difficultyColors = {
+    Easy: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    Medium: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    Hard: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    Epic: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+  };
+
   return (
     <div
-      className={`group relative p-4 rounded-2xl border transition-all duration-300 select-none ${
+      className={`group p-3 rounded-lg border transition-all flex items-center justify-between gap-3 ${
         habit.completedToday
-          ? 'bg-slate-900/40 border-emerald-500/30 opacity-75'
-          : 'bg-slate-900/75 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700 shadow-lg hover:shadow-xl'
+          ? 'bg-[#121215]/60 border-[#27272a] opacity-75'
+          : 'bg-[#141418] hover:bg-[#18181d] border-[#27272a] hover:border-[#3f3f46]'
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        {/* Interactive Checkbox */}
+      {/* Checkbox & Title */}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <button
           type="button"
           onClick={handleCheck}
-          className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer ${
+          className={`w-5 h-5 rounded-md flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
             habit.completedToday
-              ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-105'
-              : 'border-2 border-slate-600 hover:border-emerald-400 bg-slate-800/80 hover:bg-slate-700/80 text-transparent hover:text-emerald-400/40'
+              ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-sm'
+              : 'border-[#3f3f46] bg-[#18181b] hover:border-emerald-500 text-transparent'
           }`}
         >
-          <Check className={`w-5 h-5 stroke-[3] transition-transform ${habit.completedToday ? 'scale-100' : 'scale-75'}`} />
+          <Check className="w-3.5 h-3.5 stroke-[3]" />
         </button>
 
-        {/* Habit Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3
-              className={`text-sm font-bold truncate transition-colors ${
-                habit.completedToday ? 'line-through text-slate-400' : 'text-slate-100 group-hover:text-white'
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-xs font-semibold truncate ${
+                habit.completedToday ? 'line-through text-[#71717a]' : 'text-[#f4f4f5]'
               }`}
             >
               {habit.title}
-            </h3>
+            </span>
 
             {/* Target Realm Badge */}
-            {realmMeta ? (
+            {meta && (
               <span
-                className="text-[10px] px-2 py-0.5 rounded-md font-semibold flex items-center gap-1"
+                className="text-[9px] px-1.5 py-0.2 rounded font-medium shrink-0 border"
                 style={{
-                  backgroundColor: `${realmMeta.accentColor}20`,
-                  color: realmMeta.accentColor,
-                  border: `1px solid ${realmMeta.accentColor}30`,
+                  color: meta.accentColor,
+                  borderColor: `${meta.accentColor}30`,
+                  backgroundColor: `${meta.accentColor}10`,
                 }}
               >
-                <span>{realmMeta.name.split(' ')[0]}</span>
-              </span>
-            ) : (
-              <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-                Universal
+                {meta.name.split(' ')[0]}
               </span>
             )}
           </div>
 
           {habit.description && (
-            <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+            <p className="text-[11px] text-[#71717a] truncate mt-0.5">
               {habit.description}
             </p>
           )}
+        </div>
+      </div>
 
-          {/* Meta Badges: Difficulty, Time of Day, Streaks, XP */}
-          <div className="flex items-center gap-2.5 mt-2.5 flex-wrap text-xs">
-            {/* Streak Counter */}
-            <div className="flex items-center gap-1 font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20">
-              <Flame className="w-3.5 h-3.5 fill-orange-400/40" />
-              <span>{habit.streak}d streak</span>
-            </div>
+      {/* Metadata Tags & Streak */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Difficulty Badge */}
+        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium hidden sm:inline ${difficultyColors[habit.difficulty]}`}>
+          {habit.difficulty}
+        </span>
 
-            {/* XP Gain */}
-            <div className="flex items-center gap-1 text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-md">
-              <Sparkles className="w-3 h-3 text-emerald-400" />
-              <span>+{xpReward} XP</span>
-            </div>
-
-            {/* Time of Day */}
-            <div className="flex items-center gap-1 text-slate-400">
-              <Clock className="w-3 h-3" />
-              <span>{habit.targetTimeOfDay}</span>
-            </div>
-
-            {/* Category */}
-            <span className="text-[11px] text-slate-400 font-medium">
-              &bull; {habit.category}
-            </span>
-          </div>
+        {/* Streak Counter */}
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-xs font-medium text-[#f4f4f5]">
+          <Flame className={`w-3 h-3 ${habit.streak > 0 ? 'text-amber-400 fill-amber-400' : 'text-[#71717a]'}`} />
+          <span>{habit.streak}d</span>
         </div>
 
-        {/* Options Menu Button */}
-        <div className="relative">
+        {/* Actions (Edit / Delete) */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setShowMenu(!showMenu);
+              soundManager.playTap();
+              onEdit(habit);
             }}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 rounded text-[#a1a1aa] hover:text-white hover:bg-[#27272a] transition-colors cursor-pointer"
+            title="Edit Goal"
           >
-            <MoreVertical className="w-4 h-4" />
+            <Edit2 className="w-3 h-3" />
           </button>
-
-          {showMenu && (
-            <div className="absolute right-0 top-8 z-30 w-32 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl p-1 animate-fadeIn">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenu(false);
-                  onEdit(habit);
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition-colors text-left cursor-pointer"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                <span>Edit Habit</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenu(false);
-                  onDelete(habit.id);
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition-colors text-left cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete</span>
-              </button>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(habit.id);
+            }}
+            className="p-1 rounded text-[#a1a1aa] hover:text-red-400 hover:bg-[#27272a] transition-colors cursor-pointer"
+            title="Delete Goal"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
         </div>
       </div>
     </div>
