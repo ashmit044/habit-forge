@@ -1,0 +1,35 @@
+{
+  "name": "habit-forge",
+  "version": "1.0.0",
+  "description": "Gamified Habit Tracker that grows Botanical Gardens, Military Strongholds, Medieval Kingdoms, Deep Space Colonies, and Arcane Spire Realms.",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.31.0",
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@prisma/client": "^7.9.1",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "prisma": "^7.9.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^7.0.2"
+  }
+}

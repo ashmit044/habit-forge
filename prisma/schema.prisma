@@ -1,0 +1,108 @@
+// Prisma schema for HabitForge: Realms of Progress
+// PostgreSQL database with full support for scalable multi-user, multi-realm gamified habit tracking
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String?        @unique
+  username        String         @default("Hero")
+  xp              Int            @default(0)
+  level           Int            @default(1)
+  coins           Int            @default(50)
+  activeRealm     String         @default("garden") // garden, military, town, space, arcane
+  streakShields   Int            @default(1)
+  habits          Habit[]
+  realmStates     RealmState[]
+  quests          Quest[]
+  metrics         DailyMetric[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Habit {
+  id                String      @id @default(uuid())
+  userId            String      @default("default-user")
+  user              User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  category          String      @default("Health") // Health, Mind, Career, Fitness, Creativity, Routine
+  difficulty        String      @default("Medium") // Easy, Medium, Hard, Epic
+  targetTimeOfDay   String      @default("Anytime") // Morning, Afternoon, Evening, Anytime
+  targetRealm       String      @default("all") // garden, military, town, space, arcane, all
+  frequency         String      @default("daily") // daily, weekdays, weekends, custom
+  scheduledDays     String      @default("[\"mon\",\"tue\",\"wed\",\"thu\",\"fri\",\"sat\",\"sun\"]") // JSON array string
+  streak            Int         @default(0)
+  longestStreak     Int         @default(0)
+  totalCompletions  Int         @default(0)
+  archived          Boolean     @default(false)
+  color             String      @default("#10b981")
+  icon              String      @default("Flame")
+  logs              HabitLog[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model HabitLog {
+  id                 String   @id @default(uuid())
+  habitId            String
+  habit              Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  completedAt        DateTime @default(now())
+  xpEarned           Int      @default(15)
+  coinsEarned        Int      @default(5)
+  realmPointsEarned  Int      @default(10)
+  realm              String   @default("garden")
+  note               String?
+}
+
+model RealmState {
+  id              String   @id @default(uuid())
+  userId          String   @default("default-user")
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  realmType       String   // garden, military, town, space, arcane
+  level           Int      @default(1)
+  totalPoints     Int      @default(0)
+  growthStage     Int      @default(1) // 1 to 5
+  unlockedItems   String   @default("[]") // JSON string of unlocked item IDs
+  placedGrid      String   @default("[]") // JSON string of placed tiles/structures
+  resourceName    String   @default("Essence")
+  resourceAmount  Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, realmType])
+}
+
+model Quest {
+  id          String   @id @default(uuid())
+  userId      String   @default("default-user")
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  rewardXP    Int      @default(50)
+  rewardCoins Int      @default(20)
+  progress    Int      @default(0)
+  target      Int      @default(3)
+  completed   Boolean  @default(false)
+  category    String   @default("daily")
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}
+
+model DailyMetric {
+  id                  String   @id @default(uuid())
+  userId              String   @default("default-user")
+  user                User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                String   // YYYY-MM-DD
+  habitsCompleted     Int      @default(0)
+  xpGained            Int      @default(0)
+  realmPointsGained   Int      @default(0)
+  createdAt           DateTime @default(now())
+
+  @@unique([userId, date])
+}
