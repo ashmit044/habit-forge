@@ -1,5 +1,14 @@
 import { DayOfWeek, Habit, RealmProgression, RealmType, TechUnlock } from './types';
 
+export interface RealmGoalPreset {
+  title: string;
+  description: string;
+  category: 'Health' | 'Mind' | 'Career' | 'Fitness' | 'Creativity' | 'Routine';
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Epic';
+  targetTimeOfDay: 'Morning' | 'Afternoon' | 'Evening' | 'Anytime';
+  growthImpact: string;
+}
+
 export interface RealmMeta {
   id: RealmType;
   name: string;
@@ -11,6 +20,10 @@ export interface RealmMeta {
   glowColor: string;
   resourceName: string;
   resourceIcon: string;
+  primaryGoalTitle: string;
+  primaryGoalDescription: string;
+  goalFocusAreas: string[];
+  goalPresets: RealmGoalPreset[];
   stageNames: [string, string, string, string, string];
   stageDescriptions: [string, string, string, string, string];
   availableStructures: {
@@ -36,6 +49,43 @@ export const REALM_DEFINITIONS: Record<RealmType, RealmMeta> = {
     glowColor: 'rgba(16, 185, 129, 0.4)',
     resourceName: 'Sunlit Dew',
     resourceIcon: 'Droplets',
+    primaryGoalTitle: 'Reawaken the Eternal Tree of Life',
+    primaryGoalDescription: 'Grow your botanical garden from humble sprouts into a radiant sanctuary of peace, health, and vitality.',
+    goalFocusAreas: ['Physical Hydration', 'Morning Sunlight', 'Healthy Nutrition', 'Restful Sleep', 'Nature Walks'],
+    goalPresets: [
+      {
+        title: 'Morning 750ml Hydration & Dawn Light',
+        description: 'Drink a large glass of pure water and soak in 10 minutes of natural outdoor sunlight.',
+        category: 'Health',
+        difficulty: 'Easy',
+        targetTimeOfDay: 'Morning',
+        growthImpact: 'Irrigates the sprout nursery with fresh morning dew',
+      },
+      {
+        title: 'Wholesome Plant-Rich Whole Food Diet',
+        description: 'Eat at least 2 servings of fresh vegetables or fruit and minimize processed sugar.',
+        category: 'Health',
+        difficulty: 'Medium',
+        targetTimeOfDay: 'Afternoon',
+        growthImpact: 'Nourishes the blooming lotus pond with vital nutrients',
+      },
+      {
+        title: 'Evening Digital Sunset & Sleep Sanctuary',
+        description: 'Shut down blue screens 45 minutes before sleep and maintain 8 hours of restorative rest.',
+        category: 'Routine',
+        difficulty: 'Medium',
+        targetTimeOfDay: 'Evening',
+        growthImpact: 'Channels moonlit dew to the glowing bioluminescent willow',
+      },
+      {
+        title: '10,000 Steps Outdoor Nature Walk',
+        description: 'Immerse in the outdoors, breathe clean air, and accumulate 10,000 total steps.',
+        category: 'Fitness',
+        difficulty: 'Hard',
+        targetTimeOfDay: 'Afternoon',
+        growthImpact: 'Awakens the deep root network of the World Tree of Life',
+      },
+    ],
     stageNames: [
       'Stage I: Sprout Clearing',
       'Stage II: Blooming Grove',
@@ -110,6 +160,43 @@ export const REALM_DEFINITIONS: Record<RealmType, RealmMeta> = {
     glowColor: 'rgba(59, 130, 246, 0.4)',
     resourceName: 'Titanium Alloys',
     resourceIcon: 'Cpu',
+    primaryGoalTitle: 'Deploy the Apex Orbital Defense Citadel',
+    primaryGoalDescription: 'Build an impenetrable stronghold through grueling physical training, iron discipline, and tactical execution.',
+    goalFocusAreas: ['Strength & Weightlifting', 'Cardio & HIIT Drills', 'Cold Showers & Resilience', 'Early Wake-up Drills', 'Clean Diet Protocol'],
+    goalPresets: [
+      {
+        title: '0600 Tactical Reveille & Pushup Battery',
+        description: 'Wake up promptly at the alarm and execute 50 pushups and 50 air squats.',
+        category: 'Fitness',
+        difficulty: 'Medium',
+        targetTimeOfDay: 'Morning',
+        growthImpact: 'Supplies Titanium plating for perimeter sentry turrets',
+      },
+      {
+        title: '45-Minute Heavy Iron / Strength Protocol',
+        description: 'Complete a structured strength session targeting compound resistance lifts.',
+        category: 'Fitness',
+        difficulty: 'Hard',
+        targetTimeOfDay: 'Afternoon',
+        growthImpact: 'Forges heavy mechanized armor plates for the Titan War Mech',
+      },
+      {
+        title: '5km Tactical Endurance Run',
+        description: 'Run 5 kilometers maintaining consistent cadence and heart rate discipline.',
+        category: 'Fitness',
+        difficulty: 'Hard',
+        targetTimeOfDay: 'Morning',
+        growthImpact: 'Calibrates telemetry for long-range autonomous hover drones',
+      },
+      {
+        title: 'Zero Procrastination 2-Minute Rule',
+        description: 'Immediately tackle any mission taking under 2 minutes without delay.',
+        category: 'Routine',
+        difficulty: 'Easy',
+        targetTimeOfDay: 'Anytime',
+        growthImpact: 'Hardens perimeter firewalls against tactical breaches',
+      },
+    ],
     stageNames: [
       'Stage I: Forward Recon Post',
       'Stage II: Fortified Perimeter',
@@ -184,6 +271,43 @@ export const REALM_DEFINITIONS: Record<RealmType, RealmMeta> = {
     glowColor: 'rgba(245, 158, 11, 0.4)',
     resourceName: 'Royal Timber & Gold',
     resourceIcon: 'Coins',
+    primaryGoalTitle: 'Erect the Imperial Crown Metropolis',
+    primaryGoalDescription: 'Build a flourishing kingdom through financial prudence, craft mastery, and noble community leadership.',
+    goalFocusAreas: ['Budgeting & Savings', 'Workspace Cleanliness', 'Community Kindness', 'Daily Planning', 'Skill Craftsmanship'],
+    goalPresets: [
+      {
+        title: 'Daily Financial Treasury Log',
+        description: 'Track all expenses and set aside daily savings into the treasury vault.',
+        category: 'Routine',
+        difficulty: 'Easy',
+        targetTimeOfDay: 'Evening',
+        growthImpact: 'Funds the artisan craft guild and market stalls',
+      },
+      {
+        title: 'Sanctuary Tidy & Organization',
+        description: 'Spend 15 minutes organizing your physical desk, kitchen, or living room.',
+        category: 'Routine',
+        difficulty: 'Easy',
+        targetTimeOfDay: 'Evening',
+        growthImpact: 'Lays clean cobblestones throughout the residential district',
+      },
+      {
+        title: 'Noble Deed / Friend Connection',
+        description: 'Reach out to a family member, mentor, or friend to offer support or gratitude.',
+        category: 'Routine',
+        difficulty: 'Medium',
+        targetTimeOfDay: 'Anytime',
+        growthImpact: 'Attracts new happy citizens to settle in the town',
+      },
+      {
+        title: 'Mastery of Craft Practice (1 Hour)',
+        description: 'Dedicate 60 focused minutes to honing an artisan or professional craft.',
+        category: 'Career',
+        difficulty: 'Epic',
+        targetTimeOfDay: 'Morning',
+        growthImpact: 'Raises the towering battlements of the Grand Castle',
+      },
+    ],
     stageNames: [
       'Stage I: Pioneer Settlement',
       'Stage II: Thriving Village',
@@ -258,6 +382,43 @@ export const REALM_DEFINITIONS: Record<RealmType, RealmMeta> = {
     glowColor: 'rgba(139, 92, 246, 0.4)',
     resourceName: 'Antimatter Cells',
     resourceIcon: 'Atom',
+    primaryGoalTitle: 'Construct the Interstellar Warp Gateway',
+    primaryGoalDescription: 'Venture into the cosmic frontier by powering quantum reactors through coding sprints and deep technical mastery.',
+    goalFocusAreas: ['Software Engineering', 'System Architecture', 'Algorithmic Problem Solving', 'Technical RFCs', 'Zero-Distraction Sprints'],
+    goalPresets: [
+      {
+        title: 'Deep Work Coding / Engineering Sprint',
+        description: '45 minutes of hyper-focused software development with phone on do-not-disturb.',
+        category: 'Career',
+        difficulty: 'Epic',
+        targetTimeOfDay: 'Morning',
+        growthImpact: 'Fuels the antimatter core and powers orbital quantum computers',
+      },
+      {
+        title: 'Code Review & Clean Git Commits',
+        description: 'Review Pull Requests, write automated tests, and submit well-documented commits.',
+        category: 'Career',
+        difficulty: 'Medium',
+        targetTimeOfDay: 'Afternoon',
+        growthImpact: 'Maintains telemetry link with deep space exploratory probes',
+      },
+      {
+        title: 'Algorithm & Systems Study (30m)',
+        description: 'Solve 1 complex coding challenge or read an in-depth systems engineering paper.',
+        category: 'Mind',
+        difficulty: 'Hard',
+        targetTimeOfDay: 'Evening',
+        growthImpact: 'Calculates orbital trajectories for deep-space starships',
+      },
+      {
+        title: 'Ship Logs & Documentation Writing',
+        description: 'Document your codebase architecture and write clear developer setup notes.',
+        category: 'Career',
+        difficulty: 'Easy',
+        targetTimeOfDay: 'Anytime',
+        growthImpact: 'Optimizes life support subsystems inside lunar bio-domes',
+      },
+    ],
     stageNames: [
       'Stage I: Orbital Waypoint',
       'Stage II: Pressurized Habitat',
@@ -332,6 +493,43 @@ export const REALM_DEFINITIONS: Record<RealmType, RealmMeta> = {
     glowColor: 'rgba(236, 72, 153, 0.4)',
     resourceName: 'Aether Shards',
     resourceIcon: 'Sparkle',
+    primaryGoalTitle: 'Awaken the Grand Archmage Nexus',
+    primaryGoalDescription: 'Transmute internal willpower into transcendent magic through meditation, philosophical reading, and creative creation.',
+    goalFocusAreas: ['Mindfulness Meditation', 'Philosophical Reading', 'Journaling & Reflection', 'Creative Writing / Art', 'Astral Visualization'],
+    goalPresets: [
+      {
+        title: '20-Minute Deep Mindful Meditation',
+        description: 'Sit in silence, observe thoughts without judgment, and center your breathing.',
+        category: 'Mind',
+        difficulty: 'Medium',
+        targetTimeOfDay: 'Morning',
+        growthImpact: 'Charges levitating mana crystals with pure elemental aether',
+      },
+      {
+        title: 'Read 20 Pages of Enlightening Literature',
+        description: 'Immerse in classic books, philosophy, or psychology and write 3 reflections.',
+        category: 'Mind',
+        difficulty: 'Medium',
+        targetTimeOfDay: 'Evening',
+        growthImpact: 'Inscribes ancient glyphs into the Forbidden Grimoire Vault',
+      },
+      {
+        title: 'Creative Flow Alchemy (Drawing / Writing)',
+        description: 'Spend 30 uninterrupted minutes creating original art, prose, or music.',
+        category: 'Creativity',
+        difficulty: 'Hard',
+        targetTimeOfDay: 'Afternoon',
+        growthImpact: 'Stirs bubbling vapors in the Philosopher’s Cauldron',
+      },
+      {
+        title: 'Nightly Reflection & Gratitude Runes',
+        description: 'Write down 3 daily victories, 1 lesson learned, and 1 positive affirmation.',
+        category: 'Mind',
+        difficulty: 'Easy',
+        targetTimeOfDay: 'Evening',
+        growthImpact: 'Harmonizes celestial orbits in the Astral Orrery Observatory',
+      },
+    ],
     stageNames: [
       'Stage I: Apprentice Circle',
       'Stage II: Alchemy Laboratory',

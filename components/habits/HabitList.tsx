@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { Habit, HabitCategory, RealmType, TimeOfDay } from '@/lib/types';
+import { REALM_DEFINITIONS } from '@/lib/realm-config';
 import { HabitCard } from './HabitCard';
-import { Plus, Search, Filter, CheckCircle2, Sparkles, Bot } from 'lucide-react';
+import { Plus, Search, Filter, CheckCircle2, Sparkles, Bot, Target, Zap } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 
 interface HabitListProps {
@@ -27,8 +28,12 @@ export const HabitList: React.FC<HabitListProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<TimeOfDay | 'All'>('All');
-  const [selectedCategory, setSelectedCategory] = useState<HabitCategory | 'All'>('All');
   const [filterRealmOnly, setFilterRealmOnly] = useState(false);
+
+  const meta = REALM_DEFINITIONS[activeRealm];
+
+  const realmHabits = habits.filter((h) => h.targetRealm === activeRealm || h.targetRealm === 'all');
+  const realmCompletedCount = realmHabits.filter((h) => h.completedToday).length;
 
   const completedCount = habits.filter((h) => h.completedToday).length;
   const totalCount = habits.length;
@@ -44,10 +49,6 @@ export const HabitList: React.FC<HabitListProps> = ({
     }
 
     if (selectedTimeOfDay !== 'All' && habit.targetTimeOfDay !== selectedTimeOfDay && habit.targetTimeOfDay !== 'Anytime') {
-      return false;
-    }
-
-    if (selectedCategory !== 'All' && habit.category !== selectedCategory) {
       return false;
     }
 
@@ -67,13 +68,13 @@ export const HabitList: React.FC<HabitListProps> = ({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>Daily Missions & Habits</span>
+            <span>Daily Missions & Realm Goals</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold">
               {completedCount}/{totalCount} Done
             </span>
           </h2>
           <p className="text-xs text-slate-400">
-            Check off daily goals to harvest essence and expand your virtual worlds.
+            Check off daily goals to harvest resources and evolve your selected worlds.
           </p>
         </div>
 
@@ -87,7 +88,7 @@ export const HabitList: React.FC<HabitListProps> = ({
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 transition-all cursor-pointer shadow-md"
           >
             <Bot className="w-4 h-4 text-violet-400" />
-            <span>AI Habit Coach</span>
+            <span>AI Coach</span>
           </button>
 
           <button
@@ -99,8 +100,31 @@ export const HabitList: React.FC<HabitListProps> = ({
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>New Habit</span>
+            <span>Set New Goal</span>
           </button>
+        </div>
+      </div>
+
+      {/* Active Realm Objective Summary Bar */}
+      <div
+        className="p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+        style={{
+          backgroundColor: `${meta.accentColor}10`,
+          borderColor: `${meta.accentColor}30`,
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <Target className="w-4 h-4 shrink-0" style={{ color: meta.accentColor }} />
+          <div className="text-xs text-slate-200">
+            <span className="font-bold text-white">{meta.name} Campaign:</span>{' '}
+            <span className="text-slate-300">{meta.primaryGoalTitle}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 shrink-0">
+          <span className="px-2 py-0.5 rounded-md bg-slate-900/80 border border-slate-800 text-[11px]">
+            {realmCompletedCount}/{realmHabits.length} Realm Goals Done
+          </span>
         </div>
       </div>
 
@@ -109,7 +133,7 @@ export const HabitList: React.FC<HabitListProps> = ({
         <div className="flex items-center justify-between text-xs font-semibold">
           <div className="flex items-center gap-1.5 text-slate-200">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Today&apos;s Conquered Habits</span>
+            <span>Today&apos;s Conquered Goals</span>
           </div>
           <span className="text-emerald-400 font-bold">{completionPercentage}% Completed</span>
         </div>
@@ -133,7 +157,7 @@ export const HabitList: React.FC<HabitListProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search habits..."
+            placeholder="Search goals..."
             className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
           />
         </div>
@@ -170,7 +194,7 @@ export const HabitList: React.FC<HabitListProps> = ({
                 : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 border-slate-900'
             }`}
           >
-            Current Realm Only
+            {meta.name} Only
           </button>
         </div>
       </div>
@@ -179,16 +203,16 @@ export const HabitList: React.FC<HabitListProps> = ({
       {filteredHabits.length === 0 ? (
         <div className="glass-panel p-8 rounded-2xl border border-slate-800 text-center space-y-3">
           <Sparkles className="w-8 h-8 text-emerald-400 mx-auto opacity-60" />
-          <h3 className="text-sm font-bold text-white">No habits match your filters</h3>
+          <h3 className="text-sm font-bold text-white">No goals match your filters</h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Try adjusting your search criteria or create a new habit to empower your realms.
+            Try adjusting your search criteria or create a new goal to empower {meta.name}.
           </p>
           <button
             type="button"
             onClick={onOpenCreateModal}
             className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer transition-colors inline-block"
           >
-            + Create Habit
+            + Set Goal for {meta.name}
           </button>
         </div>
       ) : (

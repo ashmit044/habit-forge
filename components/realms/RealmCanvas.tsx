@@ -9,19 +9,21 @@ import { TownScene } from './TownScene';
 import { SpaceColonyScene } from './SpaceColonyScene';
 import { WizardAcademyScene } from './WizardAcademyScene';
 import { RealmInspectorModal } from './RealmInspectorModal';
-import { Plus, Sparkles, TrendingUp } from 'lucide-react';
+import { Plus, Sparkles, TrendingUp, Target, Zap, Award } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
 
 interface RealmCanvasProps {
   realmProg: RealmProgression;
   onUpgradeStructure: (structureId: string) => void;
   onAddStructure: (realmType: RealmType, itemKey: string) => void;
+  onOpenCreateGoalModal?: () => void;
 }
 
 export const RealmCanvas: React.FC<RealmCanvasProps> = ({
   realmProg,
   onUpgradeStructure,
   onAddStructure,
+  onOpenCreateGoalModal,
 }) => {
   const [selectedStructure, setSelectedStructure] = useState<PlacedStructure | null>(null);
   const [isBuildDrawerOpen, setIsBuildDrawerOpen] = useState(false);
@@ -88,6 +90,62 @@ export const RealmCanvas: React.FC<RealmCanvasProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* REALM PRIMARY CAMPAIGN OBJECTIVE CARD */}
+      <div
+        className="glass-panel p-4 rounded-2xl border transition-all space-y-2.5"
+        style={{ borderColor: `${meta.accentColor}40` }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div
+              className="p-1.5 rounded-xl flex items-center justify-center shadow"
+              style={{ backgroundColor: `${meta.accentColor}20`, color: meta.accentColor }}
+            >
+              <Target className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                {meta.name} Campaign Goal
+              </span>
+              <h3 className="text-sm font-bold text-white leading-tight">
+                {meta.primaryGoalTitle}
+              </h3>
+            </div>
+          </div>
+
+          {onOpenCreateGoalModal && (
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playTap();
+                onOpenCreateGoalModal();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-950 shadow transition-all cursor-pointer hover:scale-105 active:scale-95"
+              style={{ backgroundColor: meta.accentColor }}
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Add Goal For This Realm</span>
+            </button>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-300 leading-relaxed">
+          {meta.primaryGoalDescription}
+        </p>
+
+        <div className="pt-2 border-t border-slate-800/80 flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold text-slate-400 mr-1">Recommended Habits:</span>
+          {meta.goalFocusAreas.map((area, i) => (
+            <span
+              key={i}
+              className="text-[10px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300 font-medium"
+            >
+              {area}
+            </span>
+          ))}
         </div>
       </div>
 

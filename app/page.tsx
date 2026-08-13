@@ -18,9 +18,8 @@ import { LevelUpModal } from '@/components/progression/LevelUpModal';
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap';
 import { StatsOverview } from '@/components/analytics/StatsOverview';
 import { AICoachDrawer } from '@/components/ai/AICoachDrawer';
-import { Sparkles, Trophy, CheckSquare, Zap, Bot, Shield, Globe2 } from 'lucide-react';
+import { Globe2 } from 'lucide-react';
 import { soundManager } from '@/lib/sound';
-import confetti from 'canvas-confetti';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -409,6 +408,10 @@ export default function Home() {
               realmProg={currentRealmProg}
               onUpgradeStructure={handleUpgradeStructure}
               onAddStructure={handleAddStructure}
+              onOpenCreateGoalModal={() => {
+                setEditingHabit(null);
+                setIsHabitModalOpen(true);
+              }}
             />
 
             {/* Daily Quests & Challenges */}
