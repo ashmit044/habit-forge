@@ -378,6 +378,7 @@ export default function Home() {
             {/* Real 3D WebGL Canvas */}
             <ThreeRealmCanvas
               realmProg={currentRealmProg}
+              selectedStructureId={selected3DObject?.id || null}
               onSelectStructure={(obj) => setSelected3DObject(obj)}
               onInteractHarvest={handleCanvasInteractHarvest}
             />

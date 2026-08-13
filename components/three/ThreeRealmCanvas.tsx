@@ -10,22 +10,24 @@ import { buildTown3DScene } from './scenes/Town3D';
 import { buildSpace3DScene } from './scenes/Space3D';
 import { buildArcane3DScene } from './scenes/Arcane3D';
 import { soundManager } from '@/lib/sound';
-import { RotateCcw, Eye, Sun, Moon, Sparkles, TrendingUp, Layers } from 'lucide-react';
+import { RotateCcw, Eye, Sun, Moon, TrendingUp, Layers } from 'lucide-react';
 
 interface ThreeRealmCanvasProps {
   realmProg: RealmProgression;
+  selectedStructureId?: string | null;
   onSelectStructure: (obj: Interactive3DObject | null) => void;
   onInteractHarvest?: (realmType: RealmType, gain: number) => void;
 }
 
 export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
   realmProg,
+  selectedStructureId,
   onSelectStructure,
   onInteractHarvest,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isNight, setIsNight] = useState(false);
-  const [cameraMode, setCameraMode] = useState<'iso' | 'top' | 'focus'>('iso');
+  const [cameraMode, setCameraMode] = useState<'iso' | 'top' | 'reset'>('iso');
   const [hoveredObjectName, setHoveredObjectName] = useState<string | null>(null);
 
   const meta = REALM_DEFINITIONS[realmProg.realmType];
@@ -38,6 +40,9 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const interactablesRef = useRef<Interactive3DObject[]>([]);
+  const selectionRingRef = useRef<THREE.Mesh | null>(null);
+
+  // Manual camera orientation tracker
   const targetCamPosRef = useRef(new THREE.Vector3(18, 16, 18));
   const targetLookAtRef = useRef(new THREE.Vector3(0, 2, 0));
   const currentLookAtRef = useRef(new THREE.Vector3(0, 2, 0));
@@ -48,19 +53,19 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // 1. Scene
+    // 1. Scene Setup
     const scene = new THREE.Scene();
     sceneRef.current = scene;
     scene.background = new THREE.Color(isNight ? 0x09090b : 0x121216);
     scene.fog = new THREE.FogExp2(isNight ? 0x09090b : 0x121216, 0.015);
 
-    // 2. Camera
+    // 2. Camera Setup
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 200);
     camera.position.set(18, 16, 18);
     camera.lookAt(0, 2, 0);
     cameraRef.current = camera;
 
-    // 3. Renderer
+    // 3. WebGL Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -94,7 +99,7 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     dirLight.shadow.bias = -0.0005;
     scene.add(dirLight);
 
-    // 5. Build Realm 3D Scene
+    // 5. Build Realm 3D Scene Geometry
     let sceneController: { update: (delta: number) => void; interactables: Interactive3DObject[] };
 
     switch (realmProg.realmType) {
@@ -117,7 +122,22 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
 
     interactablesRef.current = sceneController.interactables;
 
-    // 6. Simple Mouse Drag Orbit & Raycasting
+    // 6. Subtle Ground Selection Ring Indicator
+    const ringGeo = new THREE.RingGeometry(2.2, 2.45, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(meta.accentColor),
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const selectionRing = new THREE.Mesh(ringGeo, ringMat);
+    selectionRing.rotation.x = Math.PI / 2;
+    selectionRing.position.set(0, 0.05, 0);
+    selectionRing.visible = false;
+    scene.add(selectionRing);
+    selectionRingRef.current = selectionRing;
+
+    // 7. Manual Mouse Orbit & Raycasting Interaction
     let isDragging = false;
     let prevMouseX = 0;
     let prevMouseY = 0;
@@ -177,8 +197,8 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     };
 
     const onMouseUp = (e: MouseEvent) => {
-      if (isDragging && Math.abs(e.clientX - prevMouseX) < 3 && Math.abs(e.clientY - prevMouseY) < 3) {
-        // Raycast Click
+      // If was a click (not a drag)
+      if (isDragging && Math.abs(e.clientX - prevMouseX) < 4 && Math.abs(e.clientY - prevMouseY) < 4) {
         const rect = renderer.domElement.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -207,14 +227,20 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
             onSelectStructure(matched);
             if (onInteractHarvest) onInteractHarvest(realmProg.realmType, 5);
 
-            // Focus Camera on Selected Structure
+            // Highlight selected structure on the ground WITHOUT moving camera
             const worldPos = new THREE.Vector3();
             matched.mesh.getWorldPosition(worldPos);
-            targetLookAtRef.current.copy(worldPos).add(new THREE.Vector3(0, 1.5, 0));
-            targetCamPosRef.current.set(worldPos.x + 8, worldPos.y + 6, worldPos.z + 8);
+            if (selectionRingRef.current) {
+              selectionRingRef.current.position.set(worldPos.x, 0.06, worldPos.z);
+              selectionRingRef.current.visible = true;
+            }
           }
         } else {
+          // Deselect on empty click without moving camera
           onSelectStructure(null);
+          if (selectionRingRef.current) {
+            selectionRingRef.current.visible = false;
+          }
         }
       }
       isDragging = false;
@@ -232,7 +258,7 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     window.addEventListener('mouseup', onMouseUp);
     domElement.addEventListener('wheel', onWheel, { passive: false });
 
-    // 7. Resize Observer
+    // 8. Resize Handler
     const handleResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
       const w = containerRef.current.clientWidth;
@@ -243,7 +269,7 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
-    // 8. Animation Loop
+    // 9. Animation Loop
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -253,9 +279,9 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
 
       sceneController.update(delta);
 
-      // Smooth Camera Lerp
-      camera.position.lerp(targetCamPosRef.current, 0.08);
-      currentLookAtRef.current.lerp(targetLookAtRef.current, 0.08);
+      // Smooth Camera Lerp for manual user orbit controls
+      camera.position.lerp(targetCamPosRef.current, 0.1);
+      currentLookAtRef.current.lerp(targetLookAtRef.current, 0.1);
       camera.lookAt(currentLookAtRef.current);
 
       renderer.render(scene, camera);
@@ -274,19 +300,23 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     };
   }, [realmProg.realmType, realmProg.growthStage, isNight, onSelectStructure, onInteractHarvest]);
 
-  // Preset Camera Positions
-  const setCameraPreset = (mode: 'iso' | 'top' | 'focus') => {
+  // Sync external selection state (e.g. if closed via inspector button)
+  useEffect(() => {
+    if (!selectedStructureId && selectionRingRef.current) {
+      selectionRingRef.current.visible = false;
+    }
+  }, [selectedStructureId]);
+
+  // Preset Camera Positions (Manual Controls Only)
+  const setCameraPreset = (mode: 'iso' | 'top' | 'reset') => {
     soundManager.playTap();
     setCameraMode(mode);
-    if (mode === 'iso') {
+    if (mode === 'iso' || mode === 'reset') {
       targetLookAtRef.current.set(0, 2, 0);
       targetCamPosRef.current.set(18, 16, 18);
     } else if (mode === 'top') {
       targetLookAtRef.current.set(0, 0, 0);
       targetCamPosRef.current.set(0.1, 32, 0.1);
-    } else if (mode === 'focus') {
-      targetLookAtRef.current.set(0, 3, 0);
-      targetCamPosRef.current.set(10, 8, 10);
     }
   };
 
@@ -299,7 +329,7 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
       {hoveredObjectName && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-md bg-[#18181b]/90 border border-[#3f3f46] text-xs font-semibold text-white shadow animate-fadeIn pointer-events-none flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.accentColor }} />
-          <span>{hoveredObjectName} &bull; Click to Inspect</span>
+          <span>{hoveredObjectName} &bull; Click to Select</span>
         </div>
       )}
 
@@ -311,7 +341,7 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
           className={`p-1.5 rounded text-xs font-medium transition-colors ${
             cameraMode === 'iso' ? 'bg-[#27272a] text-white' : 'text-[#a1a1aa] hover:text-white'
           }`}
-          title="Isometric View"
+          title="Isometric Angle"
         >
           <Layers className="w-3.5 h-3.5" />
         </button>
@@ -327,11 +357,9 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => setCameraPreset('focus')}
-          className={`p-1.5 rounded text-xs font-medium transition-colors ${
-            cameraMode === 'focus' ? 'bg-[#27272a] text-white' : 'text-[#a1a1aa] hover:text-white'
-          }`}
-          title="Close-Up Focus"
+          onClick={() => setCameraPreset('reset')}
+          className="p-1.5 rounded text-xs font-medium text-[#a1a1aa] hover:text-white transition-colors"
+          title="Reset Camera Orientation"
         >
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
