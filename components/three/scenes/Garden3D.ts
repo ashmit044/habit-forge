@@ -13,38 +13,42 @@ export interface Interactive3DObject {
 export function buildGarden3DScene(
   scene: THREE.Scene,
   growthStage: number
-): { update: (delta: number) => void; interactables: Interactive3DObject[] } {
+): {
+  update: (delta: number, isNight: boolean, nightFactor: number) => void;
+  interactables: Interactive3DObject[];
+} {
   const group = new THREE.Group();
   scene.add(group);
 
   const interactables: Interactive3DObject[] = [];
+  const nightLights: { light: THREE.PointLight; baseIntensity: number }[] = [];
+  const emissiveMaterials: { mat: THREE.MeshStandardMaterial | THREE.MeshBasicMaterial; baseEmissive: THREE.Color; maxIntensity: number }[] = [];
 
-  // Materials
-  const grassMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.8, metalness: 0.1 });
+  // Base Materials
+  const grassMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.85, metalness: 0.05 });
   const pathMat = new THREE.MeshStandardMaterial({ color: 0x57534e, roughness: 0.9 });
-  const waterMat = new THREE.MeshStandardMaterial({ color: 0x0d9488, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.85 });
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 });
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
-  const leafLightMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.5 });
-  const sakuraMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.5 });
+  const waterMat = new THREE.MeshStandardMaterial({ color: 0x0d9488, roughness: 0.1, metalness: 0.85, transparent: true, opacity: 0.85 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.75 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.65 });
+  const leafLightMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.55 });
+  const sakuraMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.55 });
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.8 });
-  const lanternGlowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
 
-  // 1. Terrain Ground (Natural gentle elevation)
+  // 1. Terrain Ground
   const terrainGeo = new THREE.CylinderGeometry(24, 25, 1.2, 32);
   const terrain = new THREE.Mesh(terrainGeo, grassMat);
   terrain.position.y = -0.6;
   terrain.receiveShadow = true;
   group.add(terrain);
 
-  // Outer Decorative Ring
+  // Outer Decorative Stone Ring
   const ringGeo = new THREE.TorusGeometry(24.2, 0.4, 8, 32);
   const ring = new THREE.Mesh(ringGeo, stoneMat);
   ring.rotation.x = Math.PI / 2;
   ring.position.y = -0.2;
   group.add(ring);
 
-  // 2. Cobblestone Pathways
+  // 2. Pathways
   const path1 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 16), pathMat);
   path1.position.set(0, 0.04, 6);
   path1.receiveShadow = true;
@@ -55,19 +59,16 @@ export function buildGarden3DScene(
   path2.receiveShadow = true;
   group.add(path2);
 
-  // 3. Central Ancient World Tree (Stage 1 to 5)
+  // 3. Central Ancient World Tree
   const treeGroup = new THREE.Group();
   treeGroup.position.set(0, 0, -1);
 
-  // Trunk
-  const trunkGeo = new THREE.CylinderGeometry(0.9, 1.6, 6, 12);
-  const trunk = new THREE.Mesh(trunkGeo, woodMat);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.6, 6, 12), woodMat);
   trunk.position.y = 3;
   trunk.castShadow = true;
   trunk.receiveShadow = true;
   treeGroup.add(trunk);
 
-  // Roots
   for (let i = 0; i < 4; i++) {
     const angle = (i * Math.PI) / 2;
     const root = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, 2.5, 6), woodMat);
@@ -78,7 +79,6 @@ export function buildGarden3DScene(
     treeGroup.add(root);
   }
 
-  // Canopy tiers based on stage
   const foliageRadius = growthStage >= 5 ? 4.2 : growthStage >= 3 ? 3.2 : 2.2;
   const foliageHeight = growthStage >= 5 ? 7.5 : 5.8;
 
@@ -97,6 +97,12 @@ export function buildGarden3DScene(
   foliage3.castShadow = true;
   treeGroup.add(foliage3);
 
+  // Tree Night Uplight (Illuminates trunk & canopy at night)
+  const treeUplight = new THREE.PointLight(0x6ee7b7, 0, 14, 2);
+  treeUplight.position.set(0, 1.2, 1.2);
+  treeGroup.add(treeUplight);
+  nightLights.push({ light: treeUplight, baseIntensity: 1.8 });
+
   group.add(treeGroup);
   interactables.push({
     id: 'tree_of_life',
@@ -109,36 +115,44 @@ export function buildGarden3DScene(
   });
 
   // 4. Moonlight Lotus Pond (Stage 2+)
-  let pondMesh: THREE.Object3D | null = null;
   if (growthStage >= 2) {
     const pondGroup = new THREE.Group();
     pondGroup.position.set(-6, 0, 4);
 
-    // Pond Basin
     const basin = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.8, 0.4, 16), stoneMat);
     basin.position.y = 0.2;
     basin.receiveShadow = true;
     pondGroup.add(basin);
 
-    // Water Surface
     const water = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.3, 0.42, 16), waterMat);
     water.position.y = 0.22;
     pondGroup.add(water);
 
-    // Water Lily Pads
     for (let i = 0; i < 3; i++) {
       const angle = (i * Math.PI * 2) / 3;
       const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.04, 8), leafLightMat);
       pad.position.set(Math.cos(angle) * 1.5, 0.44, Math.sin(angle) * 1.5);
       pondGroup.add(pad);
 
-      const flower = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.35, 6), sakuraMat);
+      const flowerMat = new THREE.MeshStandardMaterial({
+        color: 0xf472b6,
+        emissive: new THREE.Color(0xf43f5e),
+        emissiveIntensity: 0,
+      });
+      emissiveMaterials.push({ mat: flowerMat, baseEmissive: new THREE.Color(0xf43f5e), maxIntensity: 0.9 });
+
+      const flower = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.35, 6), flowerMat);
       flower.position.set(Math.cos(angle) * 1.5, 0.6, Math.sin(angle) * 1.5);
       pondGroup.add(flower);
     }
 
+    // Pond Underwater Glow at Night
+    const pondLight = new THREE.PointLight(0x2dd4bf, 0, 8, 2);
+    pondLight.position.set(0, 0.6, 0);
+    pondGroup.add(pondLight);
+    nightLights.push({ light: pondLight, baseIntensity: 1.5 });
+
     group.add(pondGroup);
-    pondMesh = pondGroup;
     interactables.push({
       id: 'crystal_lotus',
       name: 'Moonlight Lotus Pond',
@@ -207,67 +221,95 @@ export function buildGarden3DScene(
     mesh: herbGroup,
   });
 
-  // 7. Stone Lanterns (Stage 4+)
-  if (growthStage >= 4) {
-    const lanternPositions = [
-      { x: 2, z: 2 },
-      { x: -2, z: 2 },
-    ];
-    lanternPositions.forEach((pos, idx) => {
-      const lGroup = new THREE.Group();
-      lGroup.position.set(pos.x, 0, pos.z);
+  // 7. Physical Pathway Lantern Bollards with Point Lights
+  const lanternPositions = [
+    { x: 1.8, z: 2.5 },
+    { x: -1.8, z: 2.5 },
+    { x: 1.8, z: 8.5 },
+    { x: -1.8, z: 8.5 },
+    { x: -5.0, z: 1.6 },
+    { x: 4.5, z: 1.6 },
+  ];
 
-      const base = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 0.6), stoneMat);
-      base.position.y = 0.15;
-      lGroup.add(base);
+  lanternPositions.forEach((pos) => {
+    const lGroup = new THREE.Group();
+    lGroup.position.set(pos.x, 0, pos.z);
 
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.2, 6), stoneMat);
-      post.position.y = 0.9;
-      lGroup.add(post);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 0.5), stoneMat);
+    base.position.y = 0.12;
+    lGroup.add(base);
 
-      const light = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), lanternGlowMat);
-      light.position.y = 1.6;
-      lGroup.add(light);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 1.4, 6), woodMat);
+    post.position.y = 0.8;
+    lGroup.add(post);
 
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.4, 4), stoneMat);
-      roof.position.y = 2.05;
-      roof.rotation.y = Math.PI / 4;
-      lGroup.add(roof);
-
-      group.add(lGroup);
+    const lanternHousingMat = new THREE.MeshStandardMaterial({
+      color: 0x44403c,
+      emissive: new THREE.Color(0xfef08a),
+      emissiveIntensity: 0,
+      roughness: 0.3,
     });
-  }
+    emissiveMaterials.push({ mat: lanternHousingMat, baseEmissive: new THREE.Color(0xfef08a), maxIntensity: 1.2 });
 
-  // 8. Animated Fluttering Butterflies
-  const butterflyGeo = new THREE.BufferGeometry();
-  const particleCount = 20;
+    const glassCore = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.45, 0.4), lanternHousingMat);
+    glassCore.position.y = 1.6;
+    lGroup.add(glassCore);
+
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.3, 4), stoneMat);
+    roof.position.y = 1.95;
+    roof.rotation.y = Math.PI / 4;
+    lGroup.add(roof);
+
+    // Physical Warm Point Light casting light onto the ground path
+    const pLight = new THREE.PointLight(0xfef08a, 0, 8, 2);
+    pLight.position.set(0, 1.6, 0);
+    lGroup.add(pLight);
+    nightLights.push({ light: pLight, baseIntensity: 1.6 });
+
+    group.add(lGroup);
+  });
+
+  // 8. Animated Fluttering Fireflies / Butterflies
+  const fireflyGeo = new THREE.BufferGeometry();
+  const particleCount = 28;
   const positions = new Float32Array(particleCount * 3);
   for (let i = 0; i < particleCount * 3; i += 3) {
-    positions[i] = (Math.random() - 0.5) * 16;
-    positions[i + 1] = 1 + Math.random() * 4;
-    positions[i + 2] = (Math.random() - 0.5) * 16;
+    positions[i] = (Math.random() - 0.5) * 18;
+    positions[i + 1] = 0.8 + Math.random() * 4;
+    positions[i + 2] = (Math.random() - 0.5) * 18;
   }
-  butterflyGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const butterflyMat = new THREE.PointsMaterial({ color: 0x6ee7b7, size: 0.35, transparent: true, opacity: 0.85 });
-  const butterflyParticles = new THREE.Points(butterflyGeo, butterflyMat);
-  group.add(butterflyParticles);
+  fireflyGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const fireflyMat = new THREE.PointsMaterial({ color: 0xa7f3d0, size: 0.3, transparent: true, opacity: 0.9 });
+  const fireflyParticles = new THREE.Points(fireflyGeo, fireflyMat);
+  group.add(fireflyParticles);
 
   let time = 0;
 
   return {
-    update: (delta: number) => {
+    update: (delta: number, isNight: boolean, nightFactor: number) => {
       time += delta;
       foliage1.rotation.y = Math.sin(time * 0.5) * 0.05;
       foliage2.rotation.y = Math.cos(time * 0.6) * 0.06;
 
-      // Butterfly particle drift
-      const pos = butterflyGeo.attributes.position.array as Float32Array;
+      // Adjust physical light intensities based on smooth night factor
+      nightLights.forEach(({ light, baseIntensity }) => {
+        light.intensity = THREE.MathUtils.lerp(0, baseIntensity, nightFactor);
+      });
+
+      emissiveMaterials.forEach(({ mat, baseEmissive, maxIntensity }) => {
+        if ('emissive' in mat) {
+          (mat as THREE.MeshStandardMaterial).emissiveIntensity = THREE.MathUtils.lerp(0, maxIntensity, nightFactor);
+        }
+      });
+
+      // Firefly / butterfly drift
+      const pos = fireflyGeo.attributes.position.array as Float32Array;
       for (let i = 0; i < particleCount * 3; i += 3) {
         pos[i] += Math.sin(time + i) * 0.02;
         pos[i + 1] += Math.cos(time * 1.5 + i) * 0.015;
         pos[i + 2] += Math.cos(time + i) * 0.02;
       }
-      butterflyGeo.attributes.position.needsUpdate = true;
+      fireflyGeo.attributes.position.needsUpdate = true;
     },
     interactables,
   };

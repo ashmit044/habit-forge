@@ -27,6 +27,9 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isNight, setIsNight] = useState(false);
+  const isNightRef = useRef(isNight);
+  isNightRef.current = isNight;
+
   const [cameraMode, setCameraMode] = useState<'iso' | 'top' | 'reset'>('iso');
   const [hoveredObjectName, setHoveredObjectName] = useState<string | null>(null);
 
@@ -42,6 +45,12 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
   const interactablesRef = useRef<Interactive3DObject[]>([]);
   const selectionRingRef = useRef<THREE.Mesh | null>(null);
 
+  // Lighting References for smooth day/night transitions
+  const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
+  const hemiLightRef = useRef<THREE.HemisphereLight | null>(null);
+  const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
+  const nightFactorRef = useRef<number>(0.0); // 0 = Day, 1 = Night
+
   // Manual camera orientation tracker
   const targetCamPosRef = useRef(new THREE.Vector3(18, 16, 18));
   const targetLookAtRef = useRef(new THREE.Vector3(0, 2, 0));
@@ -56,8 +65,8 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     // 1. Scene Setup
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    scene.background = new THREE.Color(isNight ? 0x09090b : 0x121216);
-    scene.fog = new THREE.FogExp2(isNight ? 0x09090b : 0x121216, 0.015);
+    scene.background = new THREE.Color(0x121216);
+    scene.fog = new THREE.FogExp2(0x121216, 0.015);
 
     // 2. Camera Setup
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 200);
@@ -72,20 +81,22 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = isNight ? 0.7 : 1.1;
+    renderer.toneMappingExposure = 1.0;
     rendererRef.current = renderer;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
     // 4. Lights
-    const ambientLight = new THREE.AmbientLight(isNight ? 0x1e1b4b : 0xffffff, isNight ? 0.4 : 0.85);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(ambientLight);
+    ambientLightRef.current = ambientLight;
 
-    const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x18181b, isNight ? 0.3 : 0.6);
+    const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x18181b, 0.6);
     scene.add(hemiLight);
+    hemiLightRef.current = hemiLight;
 
-    const dirLight = new THREE.DirectionalLight(isNight ? 0x60a5fa : 0xffedd5, isNight ? 0.8 : 1.8);
+    const dirLight = new THREE.DirectionalLight(0xffedd5, 1.8);
     dirLight.position.set(16, 24, 12);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -98,9 +109,10 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     dirLight.shadow.camera.bottom = -16;
     dirLight.shadow.bias = -0.0005;
     scene.add(dirLight);
+    dirLightRef.current = dirLight;
 
     // 5. Build Realm 3D Scene Geometry
-    let sceneController: { update: (delta: number) => void; interactables: Interactive3DObject[] };
+    let sceneController: { update: (delta: number, isNight: boolean, nightFactor: number) => void; interactables: Interactive3DObject[] };
 
     switch (realmProg.realmType) {
       case 'garden':
@@ -122,7 +134,7 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
 
     interactablesRef.current = sceneController.interactables;
 
-    // 6. Subtle Ground Selection Ring Indicator
+    // 6. Ground Selection Ring Indicator (Subtle outline around clicked structure)
     const ringGeo = new THREE.RingGeometry(2.2, 2.45, 32);
     const ringMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(meta.accentColor),
@@ -269,15 +281,56 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
-    // 9. Animation Loop
+    // 9. Animation & Day/Night Transition Loop
     let animationFrameId: number;
     let clock = new THREE.Clock();
+
+    const dayBg = new THREE.Color(0x121216);
+    const nightBg = new THREE.Color(0x06080f);
+    const dayAmb = new THREE.Color(0xffffff);
+    const nightAmb = new THREE.Color(0x1e293b);
+    const dayDir = new THREE.Color(0xffedd5);
+    const nightDir = new THREE.Color(0x93c5fd);
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
 
-      sceneController.update(delta);
+      // Smooth Day <-> Night factor transition
+      const targetNight = isNightRef.current ? 1.0 : 0.0;
+      nightFactorRef.current = THREE.MathUtils.lerp(nightFactorRef.current, targetNight, 0.04);
+      const nf = nightFactorRef.current;
+
+      // Transition Sky & Fog
+      scene.background = new THREE.Color().lerpColors(dayBg, nightBg, nf);
+      if (scene.fog) {
+        (scene.fog as THREE.FogExp2).color.lerpColors(dayBg, nightBg, nf);
+      }
+
+      // Transition Ambient Moonlight
+      if (ambientLightRef.current) {
+        ambientLightRef.current.color.lerpColors(dayAmb, nightAmb, nf);
+        ambientLightRef.current.intensity = THREE.MathUtils.lerp(0.85, 0.35, nf);
+      }
+
+      // Transition Directional Sunlight / Moonlight
+      if (dirLightRef.current) {
+        dirLightRef.current.color.lerpColors(dayDir, nightDir, nf);
+        dirLightRef.current.intensity = THREE.MathUtils.lerp(1.8, 0.45, nf);
+        dirLightRef.current.position.set(
+          THREE.MathUtils.lerp(16, -12, nf),
+          THREE.MathUtils.lerp(24, 20, nf),
+          THREE.MathUtils.lerp(12, -14, nf)
+        );
+      }
+
+      // Transition Tone Mapping Exposure
+      if (rendererRef.current) {
+        rendererRef.current.toneMappingExposure = THREE.MathUtils.lerp(1.05, 0.85, nf);
+      }
+
+      // Update 3D Scene (Passes smooth night factor to physical streetlights & windows)
+      sceneController.update(delta, isNightRef.current, nf);
 
       // Smooth Camera Lerp for manual user orbit controls
       camera.position.lerp(targetCamPosRef.current, 0.1);
@@ -298,9 +351,9 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
     };
-  }, [realmProg.realmType, realmProg.growthStage, isNight, onSelectStructure, onInteractHarvest]);
+  }, [realmProg.realmType, realmProg.growthStage, onSelectStructure, onInteractHarvest]);
 
-  // Sync external selection state (e.g. if closed via inspector button)
+  // Sync external selection state
   useEffect(() => {
     if (!selectedStructureId && selectionRingRef.current) {
       selectionRingRef.current.visible = false;
@@ -333,7 +386,7 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
         </div>
       )}
 
-      {/* Camera Controls Overlay (Top Right) */}
+      {/* Camera & Lighting Controls Overlay (Top Right) */}
       <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 p-1 rounded-lg bg-[#121215]/80 border border-[#27272a] backdrop-blur-sm shadow">
         <button
           type="button"
@@ -372,10 +425,22 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
             soundManager.playTap();
             setIsNight(!isNight);
           }}
-          className="p-1.5 rounded text-xs text-[#a1a1aa] hover:text-white transition-colors"
-          title={isNight ? 'Switch to Daylight' : 'Switch to Night Lighting'}
+          className={`p-1.5 rounded text-xs transition-colors flex items-center gap-1 font-semibold ${
+            isNight ? 'bg-[#1e293b] text-sky-300 border border-sky-500/30' : 'text-[#a1a1aa] hover:text-white'
+          }`}
+          title={isNight ? 'Switch to Daylight' : 'Switch to Realistic Night Mode'}
         >
-          {isNight ? <Moon className="w-3.5 h-3.5 text-teal-300" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
+          {isNight ? (
+            <>
+              <Moon className="w-3.5 h-3.5 text-sky-300" />
+              <span className="text-[10px] hidden sm:inline">Night</span>
+            </>
+          ) : (
+            <>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[10px] hidden sm:inline">Day</span>
+            </>
+          )}
         </button>
       </div>
 

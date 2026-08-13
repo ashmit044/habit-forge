@@ -4,167 +4,231 @@ import { Interactive3DObject } from './Garden3D';
 export function buildTown3DScene(
   scene: THREE.Scene,
   growthStage: number
-): { update: (delta: number) => void; interactables: Interactive3DObject[] } {
+): {
+  update: (delta: number, isNight: boolean, nightFactor: number) => void;
+  interactables: Interactive3DObject[];
+} {
   const group = new THREE.Group();
   scene.add(group);
 
   const interactables: Interactive3DObject[] = [];
+  const nightLights: { light: THREE.PointLight; baseIntensity: number }[] = [];
+  const windowEmissives: { mat: THREE.MeshStandardMaterial; maxIntensity: number }[] = [];
 
   // Materials
-  const groundMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.9 });
-  const cobbleMat = new THREE.MeshStandardMaterial({ color: 0x52525b, roughness: 0.8 });
-  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x71717a, roughness: 0.7 });
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.6 });
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.5 });
-  const redBannerMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4 });
-  const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.6, roughness: 0.3 });
-  const windowGlowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x22543d, roughness: 0.9 });
+  const cobbleMat = new THREE.MeshStandardMaterial({ color: 0x57534e, roughness: 0.85 });
+  const stoneWallMat = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.8 });
+  const timberMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.7 });
+  const roofRedMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.6 });
+  const roofBlueMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.6 });
+  const ironMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.4, metalness: 0.7 });
 
-  // 1. Cobblestone Island Base
-  const baseGeo = new THREE.CylinderGeometry(24, 25, 1.2, 32);
-  const base = new THREE.Mesh(baseGeo, groundMat);
-  base.position.y = -0.6;
-  base.receiveShadow = true;
-  group.add(base);
+  // 1. Terrain Ground
+  const terrain = new THREE.Mesh(new THREE.CylinderGeometry(24, 25, 1.2, 32), groundMat);
+  terrain.position.y = -0.6;
+  terrain.receiveShadow = true;
+  group.add(terrain);
 
-  // Town Square Crossroads
-  const road1 = new THREE.Mesh(new THREE.BoxGeometry(4, 0.05, 20), cobbleMat);
+  // Cobblestone Crossroads
+  const road1 = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.04, 22), cobbleMat);
   road1.position.set(0, 0.02, 0);
   road1.receiveShadow = true;
   group.add(road1);
 
-  const road2 = new THREE.Mesh(new THREE.BoxGeometry(20, 0.05, 4), cobbleMat);
-  road2.position.set(0, 0.02, 0);
+  const road2 = new THREE.Mesh(new THREE.BoxGeometry(20, 0.04, 3.2), cobbleMat);
+  road2.position.set(0, 0.02, 2);
   road2.receiveShadow = true;
   group.add(road2);
 
-  // Town Square Central Fountain
-  const fountain = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.0, 0.6, 12), stoneMat);
-  fountain.position.set(0, 0.3, 0);
-  fountain.castShadow = true;
-  group.add(fountain);
+  // 2. Central Fountain in Town Square
+  const fountainGroup = new THREE.Group();
+  fountainGroup.position.set(0, 0, 2);
 
-  const fountainSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.4, 8), stoneMat);
-  fountainSpout.position.set(0, 0.8, 0);
-  group.add(fountainSpout);
+  const fBasin = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.5, 0.5, 16), stoneWallMat);
+  fBasin.position.y = 0.25;
+  fBasin.castShadow = true;
+  fBasin.receiveShadow = true;
+  fountainGroup.add(fBasin);
 
-  // 2. Central Monarch Castle Keep (Stage 1 to 5)
+  const fWater = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.52, 16), new THREE.MeshStandardMaterial({
+    color: 0x0284c7,
+    roughness: 0.1,
+    metalness: 0.8,
+  }));
+  fWater.position.y = 0.26;
+  fountainGroup.add(fWater);
+
+  const fSpire = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 1.8, 8), stoneWallMat);
+  fSpire.position.y = 1.0;
+  fSpire.castShadow = true;
+  fountainGroup.add(fSpire);
+
+  // Fountain Night Glow
+  const fountainLight = new THREE.PointLight(0x38bdf8, 0, 6, 2);
+  fountainLight.position.set(0, 0.8, 0);
+  fountainGroup.add(fountainLight);
+  nightLights.push({ light: fountainLight, baseIntensity: 1.0 });
+
+  group.add(fountainGroup);
+
+  // Helper to create a realistic window with warm interior illumination
+  const createWarmWindow = (w: number, h: number, maxGlow = 1.8) => {
+    const winMat = new THREE.MeshStandardMaterial({
+      color: 0xfef08a,
+      emissive: new THREE.Color(0xfde047),
+      emissiveIntensity: 0,
+      roughness: 0.3,
+    });
+    windowEmissives.push({ mat: winMat, maxIntensity: maxGlow });
+    const winMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), winMat);
+    return winMesh;
+  };
+
+  // 3. Imperial Monarch Castle Keep (Stage 3+)
   const castleGroup = new THREE.Group();
   castleGroup.position.set(0, 0, -5);
 
-  const castleWidth = growthStage >= 5 ? 7 : 5;
-  const castleHeight = growthStage >= 5 ? 6.5 : 4.5;
-
-  const keep = new THREE.Mesh(new THREE.BoxGeometry(castleWidth, castleHeight, 4.5), stoneMat);
-  keep.position.y = castleHeight / 2;
+  const castleScale = growthStage >= 5 ? 1.4 : 1.0;
+  const keep = new THREE.Mesh(new THREE.BoxGeometry(6 * castleScale, 5 * castleScale, 5 * castleScale), stoneWallMat);
+  keep.position.y = (2.5 * castleScale);
   keep.castShadow = true;
+  keep.receiveShadow = true;
   castleGroup.add(keep);
 
-  // Corner Towers
+  // Castle Windows
+  const cWin1 = createWarmWindow(0.6 * castleScale, 1.0 * castleScale, 2.0);
+  cWin1.position.set(-1.4 * castleScale, 3.2 * castleScale, 2.55 * castleScale);
+  castleGroup.add(cWin1);
+
+  const cWin2 = createWarmWindow(0.6 * castleScale, 1.0 * castleScale, 1.5);
+  cWin2.position.set(1.4 * castleScale, 3.2 * castleScale, 2.55 * castleScale);
+  castleGroup.add(cWin2);
+
+  // Castle Entrance Torch Light
+  const castleDoorLight = new THREE.PointLight(0xfef08a, 0, 10, 2);
+  castleDoorLight.position.set(0, 2.0 * castleScale, 3.0 * castleScale);
+  castleGroup.add(castleDoorLight);
+  nightLights.push({ light: castleDoorLight, baseIntensity: 2.2 });
+
+  // Castle Corner Towers
   const towerPositions = [
-    { x: -castleWidth / 2, z: -2.2 },
-    { x: castleWidth / 2, z: -2.2 },
-    { x: -castleWidth / 2, z: 2.2 },
-    { x: castleWidth / 2, z: 2.2 },
+    { x: -3.2 * castleScale, z: -2.7 * castleScale },
+    { x: 3.2 * castleScale, z: -2.7 * castleScale },
+    { x: -3.2 * castleScale, z: 2.7 * castleScale },
+    { x: 3.2 * castleScale, z: 2.7 * castleScale },
   ];
 
   towerPositions.forEach((pos) => {
-    const tTower = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.2, castleHeight + 2, 8), stoneMat);
-    tTower.position.set(pos.x, (castleHeight + 2) / 2, pos.z);
-    tTower.castShadow = true;
-    castleGroup.add(tTower);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.0 * castleScale, 1.2 * castleScale, 7 * castleScale, 8), stoneWallMat);
+    tower.position.set(pos.x, 3.5 * castleScale, pos.z);
+    tower.castShadow = true;
+    tower.receiveShadow = true;
+    castleGroup.add(tower);
 
-    const tRoof = new THREE.Mesh(new THREE.ConeGeometry(1.3, 1.8, 8), roofMat);
-    tRoof.position.set(pos.x, castleHeight + 2.9, pos.z);
-    tRoof.castShadow = true;
-    castleGroup.add(tRoof);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.4 * castleScale, 2.5 * castleScale, 8), roofBlueMat);
+    roof.position.set(pos.x, 8.0 * castleScale, pos.z);
+    roof.castShadow = true;
+    castleGroup.add(roof);
   });
-
-  // Castle Crown Flag (Stage 5)
-  if (growthStage >= 5) {
-    const flagpole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3, 6), woodMat);
-    flagpole.position.set(0, castleHeight + 1.5, 0);
-    castleGroup.add(flagpole);
-
-    const flag = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.05), redBannerMat);
-    flag.position.set(0.8, castleHeight + 2.4, 0);
-    castleGroup.add(flag);
-  }
 
   group.add(castleGroup);
   interactables.push({
-    id: 'royal_castle',
-    name: 'Castle of the Grand Monarch',
-    type: 'Sovereign Keep',
-    description: 'The royal seat of governance forged one daily habit at a time.',
+    id: 'monarch_castle',
+    name: 'Monarch Castle Keep',
+    type: 'Royal Citadel',
+    description: 'The sovereign stone keep presiding over your growing empire.',
     level: growthStage,
     tier: 5,
     mesh: castleGroup,
   });
 
-  // 3. Highland Windmill (Stage 2+)
-  const windmillGroup = new THREE.Group();
-  windmillGroup.position.set(-7, 0, -2);
+  // 4. Highland Windmill
+  const millGroup = new THREE.Group();
+  millGroup.position.set(-7, 0, -2);
 
-  const millBody = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2.2, 5.5, 8), stoneMat);
-  millBody.position.y = 2.75;
-  millBody.castShadow = true;
-  windmillGroup.add(millBody);
+  const millBase = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.4, 5, 8), stoneWallMat);
+  millBase.position.y = 2.5;
+  millBase.castShadow = true;
+  millGroup.add(millBase);
 
-  const millRoof = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.6, 8), roofMat);
-  millRoof.position.y = 6.3;
+  // Windmill Window
+  const millWin = createWarmWindow(0.5, 0.7, 1.8);
+  millWin.position.set(0, 3.2, 1.7);
+  millGroup.add(millWin);
+
+  const millRoof = new THREE.Mesh(new THREE.ConeGeometry(2.0, 1.8, 8), roofRedMat);
+  millRoof.position.y = 5.9;
   millRoof.castShadow = true;
-  windmillGroup.add(millRoof);
+  millGroup.add(millRoof);
 
-  // Rotating Sails
   const sailsGroup = new THREE.Group();
-  sailsGroup.position.set(0, 5.2, 1.4);
-
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.4, 8), woodMat);
-  hub.rotation.x = Math.PI / 2;
-  sailsGroup.add(hub);
+  sailsGroup.position.set(0, 5.0, 1.8);
 
   for (let i = 0; i < 4; i++) {
     const angle = (i * Math.PI) / 2;
-    const sailArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.5, 0.08), woodMat);
-    sailArm.rotation.z = angle;
-    sailsGroup.add(sailArm);
+    const spar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.0, 0.12), timberMat);
+    spar.position.set(Math.cos(angle) * 1.8, Math.sin(angle) * 1.8, 0);
+    spar.rotation.z = angle;
+    spar.castShadow = true;
+    sailsGroup.add(spar);
 
-    const canvas = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.02), windowGlowMat);
-    canvas.position.set(Math.cos(angle + Math.PI / 2) * 1.4, Math.sin(angle + Math.PI / 2) * 1.4, 0.02);
-    canvas.rotation.z = angle;
-    sailsGroup.add(canvas);
+    const blade = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.8), new THREE.MeshStandardMaterial({
+      color: 0xfef08a,
+      side: THREE.DoubleSide,
+      roughness: 0.9,
+    }));
+    blade.position.set(Math.cos(angle) * 1.8 + Math.sin(angle) * 0.4, Math.sin(angle) * 1.8 - Math.cos(angle) * 0.4, 0.05);
+    blade.rotation.z = angle;
+    sailsGroup.add(blade);
   }
 
-  windmillGroup.add(sailsGroup);
-  group.add(windmillGroup);
+  millGroup.add(sailsGroup);
+  group.add(millGroup);
   interactables.push({
-    id: 'grain_windmill',
+    id: 'grain_mill',
     name: 'Highland Windmill',
-    type: 'Agriculture',
-    description: 'Turns continuously with steady daily morning routines.',
+    type: 'Resource Mill',
+    description: 'Harnesses daily breezes to grind grain into royal coin.',
     level: 1,
     tier: 2,
-    mesh: windmillGroup,
+    mesh: millGroup,
   });
 
-  // 4. Artisan Cottages with Chimneys (Stage 1+)
+  // 5. Artisan Timber Cottage (Stage 1+)
   const cottageGroup = new THREE.Group();
   cottageGroup.position.set(6, 0, 3);
 
-  const cWalls = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.4, 3.2), woodMat);
-  cWalls.position.y = 1.2;
+  const cWalls = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.5, 3.2), stoneWallMat);
+  cWalls.position.y = 1.25;
   cWalls.castShadow = true;
+  cWalls.receiveShadow = true;
   cottageGroup.add(cWalls);
 
-  const cRoof = new THREE.Mesh(new THREE.ConeGeometry(3.2, 1.8, 4), roofMat);
-  cRoof.position.y = 3.3;
+  // Cottage Warm Windows
+  const cFrontWin = createWarmWindow(0.8, 0.8, 2.0);
+  cFrontWin.position.set(0.9, 1.4, 1.62);
+  cottageGroup.add(cFrontWin);
+
+  const cSideWin = createWarmWindow(0.8, 0.8, 1.4);
+  cSideWin.rotation.y = Math.PI / 2;
+  cSideWin.position.set(1.82, 1.4, 0);
+  cottageGroup.add(cSideWin);
+
+  // Cottage Entrance Sconce Light
+  const cottageLight = new THREE.PointLight(0xfef08a, 0, 7, 2);
+  cottageLight.position.set(-0.8, 1.6, 2.0);
+  cottageGroup.add(cottageLight);
+  nightLights.push({ light: cottageLight, baseIntensity: 1.8 });
+
+  const cRoof = new THREE.Mesh(new THREE.ConeGeometry(3.0, 1.8, 4), roofRedMat);
+  cRoof.position.y = 3.2;
   cRoof.rotation.y = Math.PI / 4;
   cRoof.castShadow = true;
   cottageGroup.add(cRoof);
 
-  const cChimney = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.2, 0.6), stoneMat);
-  cChimney.position.set(1.2, 3.2, 0.6);
+  const cChimney = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.2, 0.6), stoneWallMat);
+  cChimney.position.set(1.0, 3.2, -0.6);
   cChimney.castShadow = true;
   cottageGroup.add(cChimney);
 
@@ -172,78 +236,103 @@ export function buildTown3DScene(
   interactables.push({
     id: 'cozy_cottage',
     name: 'Artisan Cottage',
-    type: 'Residential Craft',
-    description: 'Warm timber and stone house for hardworking craftspeople.',
+    type: 'Guild Housing',
+    description: 'Cozy stone-and-timber cottage housing kingdom craftsmen.',
     level: 1,
     tier: 1,
     mesh: cottageGroup,
   });
 
-  // 5. Guild Market Stalls (Stage 3+)
-  if (growthStage >= 3) {
-    const marketGroup = new THREE.Group();
-    marketGroup.position.set(-5, 0, 5);
+  // 6. Guild Market Stalls
+  const marketGroup = new THREE.Group();
+  marketGroup.position.set(-5, 0, 5);
 
-    for (let i = 0; i < 2; i++) {
-      const stall = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.8, 1.6), woodMat);
-      stall.position.set(i * 3, 0.4, 0);
-      stall.castShadow = true;
-      marketGroup.add(stall);
+  const stall = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.0, 1.8), timberMat);
+  stall.position.y = 0.5;
+  stall.castShadow = true;
+  marketGroup.add(stall);
 
-      const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.8, 0.8, 4), redBannerMat);
-      canopy.position.set(i * 3, 1.8, 0);
-      canopy.rotation.y = Math.PI / 4;
-      marketGroup.add(canopy);
-    }
+  const canopy = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.0, 4), roofBlueMat);
+  canopy.position.y = 2.0;
+  canopy.rotation.y = Math.PI / 4;
+  canopy.castShadow = true;
+  marketGroup.add(canopy);
 
-    group.add(marketGroup);
-    interactables.push({
-      id: 'market_square',
-      name: 'Bustling Guild Market',
-      type: 'Commerce',
-      description: 'Merchants trade exotic supplies and gold coins.',
-      level: 1,
-      tier: 3,
-      mesh: marketGroup,
+  // Stall hanging lantern
+  const stallLight = new THREE.PointLight(0xfde047, 0, 6, 2);
+  stallLight.position.set(0, 1.6, 0.8);
+  marketGroup.add(stallLight);
+  nightLights.push({ light: stallLight, baseIntensity: 1.5 });
+
+  group.add(marketGroup);
+  interactables.push({
+    id: 'market_square',
+    name: 'Guild Bazaar Stall',
+    type: 'Trade Center',
+    description: 'Bustling merchant stalls trading harvested daily habit rewards.',
+    level: 1,
+    tier: 1,
+    mesh: marketGroup,
+  });
+
+  // 7. Realistic Wrought-Iron Streetlights Spaced Along Roads
+  const streetlightPositions = [
+    { x: 2.2, z: 5.5 },
+    { x: -2.2, z: 5.5 },
+    { x: 2.2, z: -1.5 },
+    { x: -2.2, z: -1.5 },
+    { x: -6.5, z: 0.5 },
+    { x: 6.5, z: 0.5 },
+  ];
+
+  streetlightPositions.forEach((pos) => {
+    const lampGroup = new THREE.Group();
+    lampGroup.position.set(pos.x, 0, pos.z);
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.4, 8), stoneWallMat);
+    base.position.y = 0.2;
+    lampGroup.add(base);
+
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 2.6, 8), ironMat);
+    post.position.y = 1.5;
+    post.castShadow = true;
+    lampGroup.add(post);
+
+    const lanternMat = new THREE.MeshStandardMaterial({
+      color: 0xfef08a,
+      emissive: new THREE.Color(0xfde047),
+      emissiveIntensity: 0,
     });
-  }
+    windowEmissives.push({ mat: lanternMat, maxIntensity: 2.2 });
 
-  // 6. Great Clockwork Spire (Stage 4+)
-  if (growthStage >= 4) {
-    const clockGroup = new THREE.Group();
-    clockGroup.position.set(6, 0, -4);
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.35, 6), lanternMat);
+    glass.position.y = 2.8;
+    lampGroup.add(glass);
 
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(2.2, 9, 2.2), stoneMat);
-    tower.position.y = 4.5;
-    tower.castShadow = true;
-    clockGroup.add(tower);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.2, 6), ironMat);
+    cap.position.y = 3.05;
+    lampGroup.add(cap);
 
-    const clockFace = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.2, 12), goldMat);
-    clockFace.rotation.x = Math.PI / 2;
-    clockFace.position.set(0, 7.8, 1.15);
-    clockGroup.add(clockFace);
+    // Physical Point Light casting warm illumination onto the road
+    const pLight = new THREE.PointLight(0xfef08a, 0, 9, 2);
+    pLight.position.set(0, 2.8, 0);
+    lampGroup.add(pLight);
+    nightLights.push({ light: pLight, baseIntensity: 1.8 });
 
-    const spireRoof = new THREE.Mesh(new THREE.ConeGeometry(1.8, 2.4, 4), roofMat);
-    spireRoof.position.y = 10.2;
-    spireRoof.rotation.y = Math.PI / 4;
-    clockGroup.add(spireRoof);
-
-    group.add(clockGroup);
-    interactables.push({
-      id: 'clockwork_tower',
-      name: 'Great Clockwork Spire',
-      type: 'Civic Landmark',
-      description: 'Calibrated to chime on consecutive habit completion streaks.',
-      level: 1,
-      tier: 4,
-      mesh: clockGroup,
-    });
-  }
+    group.add(lampGroup);
+  });
 
   return {
-    update: (delta: number) => {
-      // Rotate windmill sails
-      sailsGroup.rotation.z += delta * 1.5;
+    update: (delta: number, isNight: boolean, nightFactor: number) => {
+      sailsGroup.rotation.z += delta * 0.8;
+
+      nightLights.forEach(({ light, baseIntensity }) => {
+        light.intensity = THREE.MathUtils.lerp(0, baseIntensity, nightFactor);
+      });
+
+      windowEmissives.forEach(({ mat, maxIntensity }) => {
+        mat.emissiveIntensity = THREE.MathUtils.lerp(0, maxIntensity, nightFactor);
+      });
     },
     interactables,
   };

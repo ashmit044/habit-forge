@@ -4,174 +4,215 @@ import { Interactive3DObject } from './Garden3D';
 export function buildArcane3DScene(
   scene: THREE.Scene,
   growthStage: number
-): { update: (delta: number) => void; interactables: Interactive3DObject[] } {
+): {
+  update: (delta: number, isNight: boolean, nightFactor: number) => void;
+  interactables: Interactive3DObject[];
+} {
   const group = new THREE.Group();
   scene.add(group);
 
   const interactables: Interactive3DObject[] = [];
+  const nightLights: { light: THREE.PointLight; baseIntensity: number }[] = [];
+  const emissiveMaterials: { mat: THREE.MeshStandardMaterial; maxIntensity: number }[] = [];
 
   // Materials
-  const islandMat = new THREE.MeshStandardMaterial({ color: 0x3b0764, roughness: 0.8 });
-  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x581c87, roughness: 0.6 });
-  const crystalMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.2, metalness: 0.8, transparent: true, opacity: 0.9 });
-  const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.7, roughness: 0.3 });
-  const cauldronMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.4, metalness: 0.6 });
-  const glowPinkMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
-  const glowVioletMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+  const darkRockMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.85 });
+  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3, metalness: 0.8 });
+  const crystalMat = new THREE.MeshStandardMaterial({
+    color: 0xec4899,
+    emissive: new THREE.Color(0xf43f5e),
+    emissiveIntensity: 0.6,
+    roughness: 0.1,
+  });
+  emissiveMaterials.push({ mat: crystalMat, maxIntensity: 2.2 });
 
-  // 1. Floating Arcane Island Base
-  const islandGeo = new THREE.ConeGeometry(24, 10, 24);
-  const island = new THREE.Mesh(islandGeo, islandMat);
-  island.rotation.x = Math.PI;
-  island.position.y = -5.0;
-  island.receiveShadow = true;
-  group.add(island);
+  // 1. Floating Inverted Cone Rock Island
+  const rockIsland = new THREE.Mesh(new THREE.ConeGeometry(24, 18, 16), darkRockMat);
+  rockIsland.rotation.x = Math.PI;
+  rockIsland.position.y = -9;
+  rockIsland.receiveShadow = true;
+  group.add(rockIsland);
 
-  // Runic Summoning Ring on Surface
-  const ringGeo = new THREE.TorusGeometry(18, 0.3, 8, 32);
-  const ring = new THREE.Mesh(ringGeo, glowVioletMat);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.05;
-  group.add(ring);
+  const topPlate = new THREE.Mesh(new THREE.CylinderGeometry(24, 24, 0.6, 32), stoneMat);
+  topPlate.position.y = -0.3;
+  topPlate.receiveShadow = true;
+  group.add(topPlate);
 
-  // 2. Central Archmage Pinnacle Spire (Stage 1 to 5)
+  // Runic Summoning Circle Ring
+  const runeRingMat = new THREE.MeshStandardMaterial({
+    color: 0x818cf8,
+    emissive: new THREE.Color(0x6366f1),
+    emissiveIntensity: 0.1,
+  });
+  emissiveMaterials.push({ mat: runeRingMat, maxIntensity: 1.8 });
+
+  const runeRing = new THREE.Mesh(new THREE.TorusGeometry(12, 0.2, 8, 32), runeRingMat);
+  runeRing.rotation.x = Math.PI / 2;
+  runeRing.position.y = 0.02;
+  group.add(runeRing);
+
+  // 2. Central Archmage Spire
   const spireGroup = new THREE.Group();
   spireGroup.position.set(0, 0, 0);
 
-  const spireHeight = growthStage >= 5 ? 10 : 7;
-  const spireBase = new THREE.Mesh(new THREE.ConeGeometry(2.4, spireHeight, 6), stoneMat);
-  spireBase.position.y = spireHeight / 2;
-  spireBase.castShadow = true;
-  spireGroup.add(spireBase);
+  const spireScale = growthStage >= 5 ? 1.4 : 1.0;
+  const baseTower = new THREE.Mesh(new THREE.CylinderGeometry(2.5 * spireScale, 4.0 * spireScale, 8 * spireScale, 8), stoneMat);
+  baseTower.position.y = 4 * spireScale;
+  baseTower.castShadow = true;
+  baseTower.receiveShadow = true;
+  spireGroup.add(baseTower);
 
-  // Floating Crown Stones (Stage 5)
-  const floatingStones: THREE.Mesh[] = [];
-  if (growthStage >= 5) {
-    for (let i = 0; i < 3; i++) {
-      const angle = (i * Math.PI * 2) / 3;
-      const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 1), crystalMat);
-      stone.position.set(Math.cos(angle) * 3.2, spireHeight + 1.2, Math.sin(angle) * 3.2);
-      spireGroup.add(stone);
-      floatingStones.push(stone);
-    }
-  }
+  const pinnacle = new THREE.Mesh(new THREE.ConeGeometry(2.0 * spireScale, 6 * spireScale, 8), stoneMat);
+  pinnacle.position.y = 11 * spireScale;
+  pinnacle.castShadow = true;
+  spireGroup.add(pinnacle);
 
-  // Spire Tip Orb
-  const tipOrb = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 12), glowPinkMat);
-  tipOrb.position.y = spireHeight + 0.8;
-  spireGroup.add(tipOrb);
+  const topCrystal = new THREE.Mesh(new THREE.OctahedronGeometry(1.2 * spireScale, 0), crystalMat);
+  topCrystal.position.y = 15 * spireScale;
+  spireGroup.add(topCrystal);
+
+  // Spire Beacon Point Light
+  const spireLight = new THREE.PointLight(0xf43f5e, 0, 14, 2);
+  spireLight.position.set(0, 15 * spireScale, 0);
+  spireGroup.add(spireLight);
+  nightLights.push({ light: spireLight, baseIntensity: 2.5 });
 
   group.add(spireGroup);
   interactables.push({
-    id: 'archmage_nexus',
-    name: 'Astral Archmage Nexus',
-    type: 'Arcane Citadel',
-    description: 'Pinnacle of sorcery where internal willpower transforms reality.',
+    id: 'archmage_spire',
+    name: 'Archmage Citadel Spire',
+    type: 'Arcane Focal Point',
+    description: 'Channelling raw cosmic mana into daily habit discipline.',
     level: growthStage,
     tier: 5,
     mesh: spireGroup,
   });
 
-  // 3. Levitating Mana Crystal (Stage 2+)
-  let crystalMesh: THREE.Object3D | null = null;
-  if (growthStage >= 2) {
-    const crystalGroup = new THREE.Group();
-    crystalGroup.position.set(6, 2, -4);
+  // 3. Levitating Mana Geode Crystal
+  const geodeGroup = new THREE.Group();
+  geodeGroup.position.set(6, 2, -4);
 
-    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(1.6, 0), crystalMat);
-    crystal.castShadow = true;
-    crystalGroup.add(crystal);
+  const crystal1 = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.5, 6), crystalMat);
+  crystal1.rotation.z = 0.2;
+  geodeGroup.add(crystal1);
 
-    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 1.6, 6), stoneMat);
-    pedestal.position.y = -2.0;
-    crystalGroup.add(pedestal);
+  const crystal2 = new THREE.Mesh(new THREE.ConeGeometry(0.6, 2.0, 6), crystalMat);
+  crystal2.position.set(0.6, 0.4, 0.4);
+  crystal2.rotation.z = -0.3;
+  geodeGroup.add(crystal2);
 
-    group.add(crystalGroup);
-    crystalMesh = crystal;
-    interactables.push({
-      id: 'crystal_pillar',
-      name: 'Levitating Mana Crystal',
-      type: 'Aether Conduit',
-      description: 'Channels elemental energies into protective spell shields.',
-      level: 1,
-      tier: 2,
-      mesh: crystalGroup,
-    });
-  }
+  // Crystal Glow Light
+  const geodeLight = new THREE.PointLight(0xec4899, 0, 8, 2);
+  geodeLight.position.set(0, 1.2, 0);
+  geodeGroup.add(geodeLight);
+  nightLights.push({ light: geodeLight, baseIntensity: 1.8 });
 
-  // 4. Alchemy Courtyard & Philosopher's Cauldron (Stage 1+)
+  group.add(geodeGroup);
+  interactables.push({
+    id: 'mana_geode',
+    name: 'Levitating Mana Crystal',
+    type: 'Crystal Node',
+    description: 'Zero-gravity crystal formation emitting harmonious mystical frequencies.',
+    level: 1,
+    tier: 2,
+    mesh: geodeGroup,
+  });
+
+  // 4. Philosopher's Cauldron
   const cauldronGroup = new THREE.Group();
   cauldronGroup.position.set(-6, 0, 4);
 
-  const cauldron = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 16), cauldronMat);
-  cauldron.position.y = 1.2;
-  cauldron.castShadow = true;
-  cauldronGroup.add(cauldron);
+  const pot = new THREE.Mesh(new THREE.SphereGeometry(1.6, 12, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), stoneMat);
+  pot.rotation.x = Math.PI;
+  pot.position.y = 1.4;
+  pot.castShadow = true;
+  cauldronGroup.add(pot);
 
-  const potionLiquid = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.2, 16), glowPinkMat);
-  potionLiquid.position.y = 2.0;
-  cauldronGroup.add(potionLiquid);
+  const brewMat = new THREE.MeshStandardMaterial({
+    color: 0x10b981,
+    emissive: new THREE.Color(0x34d399),
+    emissiveIntensity: 0.6,
+  });
+  emissiveMaterials.push({ mat: brewMat, maxIntensity: 2.2 });
+
+  const brew = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.1, 16), brewMat);
+  brew.position.y = 1.35;
+  cauldronGroup.add(brew);
+
+  // Potion night point light
+  const brewLight = new THREE.PointLight(0x34d399, 0, 8, 2);
+  brewLight.position.set(0, 1.6, 0);
+  cauldronGroup.add(brewLight);
+  nightLights.push({ light: brewLight, baseIntensity: 1.8 });
 
   group.add(cauldronGroup);
   interactables.push({
     id: 'potion_cauldron',
     name: 'Philosopher’s Cauldron',
-    type: 'Alchemy',
-    description: 'Brews elixirs of energy from daily habit completions.',
+    type: 'Alchemy Lab',
+    description: 'Transmutes routine effort into radiant wisdom elixir.',
     level: 1,
     tier: 1,
     mesh: cauldronGroup,
   });
 
-  // 5. Celestial Orrery Astrolabe (Stage 3+)
-  const orreryGroup = new THREE.Group();
-  orreryGroup.position.set(-6, 0, -5);
+  // 5. Perimeter Standing Braziers (Warm Torches along Island edge)
+  const brazierPositions = [
+    { x: -8, z: -8 },
+    { x: 8, z: -8 },
+    { x: -8, z: 8 },
+    { x: 8, z: 8 },
+  ];
 
-  const oStand = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, 3, 8), stoneMat);
-  oStand.position.y = 1.5;
-  orreryGroup.add(oStand);
+  brazierPositions.forEach((pos) => {
+    const bGroup = new THREE.Group();
+    bGroup.position.set(pos.x, 0, pos.z);
 
-  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.1, 6, 24), goldMat);
-  ring1.position.y = 3.6;
-  ring1.rotation.x = Math.PI / 4;
-  orreryGroup.add(ring1);
+    const bPedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2.0, 8), stoneMat);
+    bPedestal.position.y = 1.0;
+    bGroup.add(bPedestal);
 
-  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.08, 6, 24), goldMat);
-  ring2.position.y = 3.6;
-  ring2.rotation.y = Math.PI / 3;
-  orreryGroup.add(ring2);
+    const bBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.4, 0.4, 8), goldMat);
+    bBowl.position.y = 2.1;
+    bGroup.add(bBowl);
 
-  const orreryOrb = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), glowPinkMat);
-  orreryOrb.position.y = 3.6;
-  orreryGroup.add(orreryOrb);
+    const flameMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      emissive: new THREE.Color(0xfbbf24),
+      emissiveIntensity: 0,
+    });
+    emissiveMaterials.push({ mat: flameMat, maxIntensity: 2.5 });
 
-  group.add(orreryGroup);
-  interactables.push({
-    id: 'astral_telescope',
-    name: 'Orrery of the Cosmos',
-    type: 'Divination',
-    description: 'Tracks celestial alignments to forecast auspicious habit days.',
-    level: 1,
-    tier: 3,
-    mesh: orreryGroup,
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.6, 6), flameMat);
+    flame.position.y = 2.5;
+    bGroup.add(flame);
+
+    const torchLight = new THREE.PointLight(0xf59e0b, 0, 9, 2);
+    torchLight.position.set(0, 2.5, 0);
+    bGroup.add(torchLight);
+    nightLights.push({ light: torchLight, baseIntensity: 1.8 });
+
+    group.add(bGroup);
   });
 
   let time = 0;
 
   return {
-    update: (delta: number) => {
+    update: (delta: number, isNight: boolean, nightFactor: number) => {
       time += delta;
+      topCrystal.rotation.y += delta * 1.5;
+      geodeGroup.position.y = 2 + Math.sin(time * 1.5) * 0.4;
+      geodeGroup.rotation.y += delta * 0.8;
 
-      if (crystalMesh) {
-        crystalMesh.position.y = Math.sin(time * 1.5) * 0.4;
-        crystalMesh.rotation.y += delta * 0.8;
-      }
+      runeRing.rotation.z += delta * 0.2;
 
-      ring1.rotation.z += delta * 0.9;
-      ring2.rotation.x += delta * 1.1;
+      nightLights.forEach(({ light, baseIntensity }) => {
+        light.intensity = THREE.MathUtils.lerp(0, baseIntensity, nightFactor);
+      });
 
-      floatingStones.forEach((st, idx) => {
-        st.position.y = spireHeight + 1.2 + Math.sin(time * 2 + idx) * 0.25;
+      emissiveMaterials.forEach(({ mat, maxIntensity }) => {
+        mat.emissiveIntensity = THREE.MathUtils.lerp(0, maxIntensity, nightFactor);
       });
     },
     interactables,

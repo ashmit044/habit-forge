@@ -4,19 +4,22 @@ import { Interactive3DObject } from './Garden3D';
 export function buildMilitary3DScene(
   scene: THREE.Scene,
   growthStage: number
-): { update: (delta: number) => void; interactables: Interactive3DObject[] } {
+): {
+  update: (delta: number, isNight: boolean, nightFactor: number) => void;
+  interactables: Interactive3DObject[];
+} {
   const group = new THREE.Group();
   scene.add(group);
 
   const interactables: Interactive3DObject[] = [];
+  const nightLights: { light: THREE.PointLight; baseIntensity: number }[] = [];
+  const emissiveMaterials: { mat: THREE.MeshStandardMaterial | THREE.MeshBasicMaterial; maxIntensity: number }[] = [];
 
   // Materials
-  const tarmacMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
-  const armorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.7 });
-  const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.8 });
+  const tarmacMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 });
+  const armorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.45, metalness: 0.7 });
+  const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.35, metalness: 0.8 });
   const hazardMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.5 });
-  const glowBlueMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-  const glowRedMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
 
   // 1. Tactical Tarmac Baseplate
   const baseplateGeo = new THREE.CylinderGeometry(24, 25, 1.2, 32);
@@ -25,13 +28,12 @@ export function buildMilitary3DScene(
   baseplate.receiveShadow = true;
   group.add(baseplate);
 
-  // Runway / Taxiway Markings
+  // Runway Markings
   const runway = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.04, 22), darkMetalMat);
   runway.position.set(0, 0.02, 0);
   runway.receiveShadow = true;
   group.add(runway);
 
-  // Hazard Lines
   const line1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 18), hazardMat);
   line1.position.set(-1.6, 0.03, 0);
   group.add(line1);
@@ -40,11 +42,10 @@ export function buildMilitary3DScene(
   line2.position.set(1.6, 0.03, 0);
   group.add(line2);
 
-  // 2. Central Titan War Mech (Stage 1 to 5)
+  // 2. Central Titan War Mech
   const mechGroup = new THREE.Group();
   mechGroup.position.set(0, 0, -2);
 
-  // Bipedal Legs
   const legGeo = new THREE.BoxGeometry(0.8, 3, 1.2);
   const leftLeg = new THREE.Mesh(legGeo, armorMat);
   leftLeg.position.set(-1.2, 1.5, 0);
@@ -56,7 +57,6 @@ export function buildMilitary3DScene(
   rightLeg.castShadow = true;
   mechGroup.add(rightLeg);
 
-  // Feet
   const footGeo = new THREE.BoxGeometry(1.2, 0.4, 2);
   const leftFoot = new THREE.Mesh(footGeo, darkMetalMat);
   leftFoot.position.set(-1.2, 0.2, 0.3);
@@ -68,7 +68,6 @@ export function buildMilitary3DScene(
   rightFoot.castShadow = true;
   mechGroup.add(rightFoot);
 
-  // Pelvis & Torso
   const pelvis = new THREE.Mesh(new THREE.BoxGeometry(3, 0.8, 1.6), darkMetalMat);
   pelvis.position.y = 3.2;
   pelvis.castShadow = true;
@@ -80,13 +79,26 @@ export function buildMilitary3DScene(
   torso.castShadow = true;
   mechGroup.add(torso);
 
-  // Glowing Core Reactor
-  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.2, 12), glowBlueMat);
+  // Core Glowing Reactor (Emissive material with soft glow)
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: 0x0284c7,
+    emissive: new THREE.Color(0x38bdf8),
+    emissiveIntensity: 0.5,
+    roughness: 0.2,
+  });
+  emissiveMaterials.push({ mat: coreMat, maxIntensity: 2.0 });
+
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.2, 12), coreMat);
   core.rotation.x = Math.PI / 2;
   core.position.set(0, 4.8, 1.3 * torsoScale);
   mechGroup.add(core);
 
-  // Shoulder Mounted Missile Pods (Stage 3+)
+  // Mech Gantry Ground Uplight (Casts dramatic upward shadow at night)
+  const mechUplight = new THREE.PointLight(0x38bdf8, 0, 10, 2);
+  mechUplight.position.set(0, 0.4, 3.5);
+  mechGroup.add(mechUplight);
+  nightLights.push({ light: mechUplight, baseIntensity: 1.8 });
+
   if (growthStage >= 3) {
     const leftPod = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 2), darkMetalMat);
     leftPod.position.set(-2.8, 6.2, 0);
@@ -99,7 +111,6 @@ export function buildMilitary3DScene(
     mechGroup.add(rightPod);
   }
 
-  // Arm Cannons (Stage 4+)
   if (growthStage >= 4) {
     const leftCannon = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 4, 8), darkMetalMat);
     leftCannon.rotation.x = Math.PI / 2;
@@ -125,17 +136,15 @@ export function buildMilitary3DScene(
     mesh: mechGroup,
   });
 
-  // 3. Phased Array Radar Dish Tower (Stage 2+)
+  // 3. Phased Array Radar Dish Tower with Obstruction Beacon
   const radarGroup = new THREE.Group();
   radarGroup.position.set(7, 0, -4);
 
-  // Tower Pylon
   const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.2, 5, 8), darkMetalMat);
   pylon.position.y = 2.5;
   pylon.castShadow = true;
   radarGroup.add(pylon);
 
-  // Rotating Dish Assembly
   const dishGroup = new THREE.Group();
   dishGroup.position.y = 5.2;
 
@@ -144,10 +153,22 @@ export function buildMilitary3DScene(
   dish.castShadow = true;
   dishGroup.add(dish);
 
-  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.6, 6), glowBlueMat);
-  antenna.position.set(0, 0.8, 0.6);
-  antenna.rotation.x = Math.PI / 3;
-  dishGroup.add(antenna);
+  const beaconMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444,
+    emissive: new THREE.Color(0xef4444),
+    emissiveIntensity: 0.2,
+  });
+  emissiveMaterials.push({ mat: beaconMat, maxIntensity: 2.2 });
+
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), beaconMat);
+  beacon.position.set(0, 1.2, 0.6);
+  dishGroup.add(beacon);
+
+  // Beacon point light
+  const beaconLight = new THREE.PointLight(0xef4444, 0, 6, 2);
+  beaconLight.position.set(0, 1.2, 0.6);
+  dishGroup.add(beaconLight);
+  nightLights.push({ light: beaconLight, baseIntensity: 1.2 });
 
   radarGroup.add(dishGroup);
   group.add(radarGroup);
@@ -161,7 +182,7 @@ export function buildMilitary3DScene(
     mesh: radarGroup,
   });
 
-  // 4. Perimeter Twin-Link Sentry Turrets (Stage 1+)
+  // 4. Perimeter Laser Sentry Turret
   const sentryGroup = new THREE.Group();
   sentryGroup.position.set(-6, 0, 4);
 
@@ -185,10 +206,6 @@ export function buildMilitary3DScene(
   sBarrel2.position.set(0.35, 1.6, 1.1);
   sentryGroup.add(sBarrel2);
 
-  const sLaser = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), glowRedMat);
-  sLaser.position.set(0, 1.8, 0.8);
-  sentryGroup.add(sLaser);
-
   group.add(sentryGroup);
   interactables.push({
     id: 'sentry_turret',
@@ -200,7 +217,7 @@ export function buildMilitary3DScene(
     mesh: sentryGroup,
   });
 
-  // 5. Heavy Combat Tank (Stage 4+)
+  // 5. Heavy Combat Tank
   if (growthStage >= 4) {
     const tankGroup = new THREE.Group();
     tankGroup.position.set(-6, 0, -4);
@@ -229,7 +246,48 @@ export function buildMilitary3DScene(
     group.add(tankGroup);
   }
 
-  // 6. Autonomous Hover Drone (Stage 3+)
+  // 6. Perimeter Stadium Floodlights (Real 3D Streetlights/Pylons)
+  const floodlightPositions = [
+    { x: -9, z: -8 },
+    { x: 9, z: -8 },
+    { x: -9, z: 8 },
+    { x: 9, z: 8 },
+  ];
+
+  floodlightPositions.forEach((pos) => {
+    const fGroup = new THREE.Group();
+    fGroup.position.set(pos.x, 0, pos.z);
+
+    const fPole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 6, 8), darkMetalMat);
+    fPole.position.y = 3;
+    fPole.castShadow = true;
+    fGroup.add(fPole);
+
+    const fHead = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 0.6), darkMetalMat);
+    fHead.position.set(0, 6, 0);
+    fHead.rotation.x = Math.PI / 6;
+    fGroup.add(fHead);
+
+    const fBulbMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: new THREE.Color(0xffedd5),
+      emissiveIntensity: 0,
+    });
+    emissiveMaterials.push({ mat: fBulbMat, maxIntensity: 2.5 });
+
+    const fBulb = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 0.4), fBulbMat);
+    fBulb.position.set(0, 5.9, 0.1);
+    fGroup.add(fBulb);
+
+    const floodLight = new THREE.PointLight(0xffedd5, 0, 16, 2);
+    floodLight.position.set(0, 5.8, 0.5);
+    fGroup.add(floodLight);
+    nightLights.push({ light: floodLight, baseIntensity: 2.2 });
+
+    group.add(fGroup);
+  });
+
+  // 7. Autonomous Hover Drone
   const droneGroup = new THREE.Group();
   droneGroup.position.set(2, 4, 3);
 
@@ -237,22 +295,16 @@ export function buildMilitary3DScene(
   dBody.castShadow = true;
   droneGroup.add(dBody);
 
-  const dCore = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), glowBlueMat);
+  const dNavLightMat = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    emissive: new THREE.Color(0x38bdf8),
+    emissiveIntensity: 0.5,
+  });
+  emissiveMaterials.push({ mat: dNavLightMat, maxIntensity: 2.0 });
+
+  const dCore = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), dNavLightMat);
   dCore.position.y = 0.15;
   droneGroup.add(dCore);
-
-  for (let i = 0; i < 4; i++) {
-    const angle = (i * Math.PI) / 2 + Math.PI / 4;
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.8, 4), darkMetalMat);
-    arm.rotation.z = Math.PI / 2;
-    arm.position.set(Math.cos(angle) * 0.7, 0, Math.sin(angle) * 0.7);
-    arm.rotation.y = angle;
-    droneGroup.add(arm);
-
-    const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.02, 6), glowBlueMat);
-    rotor.position.set(Math.cos(angle) * 1.1, 0.1, Math.sin(angle) * 1.1);
-    droneGroup.add(rotor);
-  }
 
   group.add(droneGroup);
   interactables.push({
@@ -268,24 +320,36 @@ export function buildMilitary3DScene(
   let time = 0;
 
   return {
-    update: (delta: number) => {
+    update: (delta: number, isNight: boolean, nightFactor: number) => {
       time += delta;
-      // Rotate radar dish
       dishGroup.rotation.y += delta * 1.2;
 
-      // Sentry turret slight scan sweep
       sHead.rotation.y = Math.sin(time * 0.8) * 0.4;
       sBarrel1.rotation.y = Math.sin(time * 0.8) * 0.4;
       sBarrel2.rotation.y = Math.sin(time * 0.8) * 0.4;
 
-      // Mech subtle idle breathing
       mechGroup.position.y = Math.sin(time * 1.2) * 0.06;
 
-      // Hover Drone spline movement
       droneGroup.position.x = Math.sin(time * 0.7) * 5;
       droneGroup.position.z = Math.cos(time * 0.7) * 5;
       droneGroup.position.y = 4.2 + Math.sin(time * 2.0) * 0.3;
       droneGroup.rotation.y = -time * 0.7 + Math.PI / 2;
+
+      // Obstruction beacon rhythmic pulse at night
+      const beaconPulse = Math.sin(time * 3) > 0 ? 1 : 0.2;
+      beaconLight.intensity = nightFactor * 1.5 * beaconPulse;
+
+      nightLights.forEach(({ light, baseIntensity }) => {
+        if (light !== beaconLight) {
+          light.intensity = THREE.MathUtils.lerp(0, baseIntensity, nightFactor);
+        }
+      });
+
+      emissiveMaterials.forEach(({ mat, maxIntensity }) => {
+        if ('emissive' in mat) {
+          (mat as THREE.MeshStandardMaterial).emissiveIntensity = THREE.MathUtils.lerp(0, maxIntensity, nightFactor);
+        }
+      });
     },
     interactables,
   };
