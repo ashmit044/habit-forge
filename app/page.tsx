@@ -68,6 +68,22 @@ export default function Home() {
     storage.saveUserProfile(updatedUser);
   };
 
+  // Canvas Tap Harvest Interactive Reward
+  const handleCanvasInteractHarvest = (realmType: RealmType, gain: number) => {
+    const currentProg = realms[realmType];
+    const updatedProg = {
+      ...currentProg,
+      resourceAmount: currentProg.resourceAmount + gain,
+      currentPoints: currentProg.currentPoints + Math.round(gain * 0.5),
+    };
+    const updatedRealms = {
+      ...realms,
+      [realmType]: updatedProg,
+    };
+    setRealms(updatedRealms);
+    storage.saveRealms(updatedRealms);
+  };
+
   // Complete / Uncomplete Habit
   const handleToggleComplete = (habitId: string) => {
     const targetHabit = habits.find((h) => h.id === habitId);
@@ -412,6 +428,7 @@ export default function Home() {
                 setEditingHabit(null);
                 setIsHabitModalOpen(true);
               }}
+              onInteractHarvest={handleCanvasInteractHarvest}
             />
 
             {/* Daily Quests & Challenges */}

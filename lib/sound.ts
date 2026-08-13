@@ -84,7 +84,6 @@ class SoundEngine {
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    // Fanfare chord progression
     const chord = [523.25, 659.25, 783.99, 987.77, 1046.50, 1318.51];
 
     chord.forEach((freq, idx) => {
@@ -149,6 +148,78 @@ class SoundEngine {
 
     osc.start(now);
     osc.stop(now + 0.06);
+  }
+
+  public playHarvest(): void {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const freqs = [600, 800, 1200];
+    freqs.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+
+      gain.gain.setValueAtTime(0.1, now + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.15);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + idx * 0.05);
+      osc.stop(now + idx * 0.05 + 0.15);
+    });
+  }
+
+  public playLaser(): void {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  public playMagic(): void {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    [523.25, 783.99, 1046.50, 1567.98].forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now + i * 0.06);
+
+      gain.gain.setValueAtTime(0.08, now + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.25);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + i * 0.06);
+      osc.stop(now + i * 0.06 + 0.25);
+    });
   }
 
   public playShield(): void {

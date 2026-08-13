@@ -1,20 +1,101 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { soundManager } from '@/lib/sound';
+import { Sun, Moon, Sparkles } from 'lucide-react';
 
 interface GardenSceneProps {
   growthStage: number; // 1 to 5
-  particleCount?: number;
+  onInteract?: (msg: string, resourceGain?: number) => void;
 }
 
-export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
+interface FloatingText {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+}
+
+export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage, onInteract }) => {
+  const [isNight, setIsNight] = useState(false);
+  const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
+  const [treeWobble, setTreeWobble] = useState(false);
+  const [lotusGlowState, setLotusGlowState] = useState(false);
+
+  const spawnFloatingText = (x: number, y: number, text: string) => {
+    const newId = Date.now() + Math.random();
+    setFloatingTexts((prev) => [...prev, { id: newId, x, y, text }]);
+    setTimeout(() => {
+      setFloatingTexts((prev) => prev.filter((item) => item.id !== newId));
+    }, 1200);
+  };
+
+  const handleTreeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    soundManager.playHarvest();
+    setTreeWobble(true);
+    setTimeout(() => setTreeWobble(false), 800);
+    spawnFloatingText(e.clientX || 250, (e.clientY || 200) - 40, '🌿 +5 Sunlit Dew!');
+    if (onInteract) onInteract('You nourished the Ancient World Tree with your daily focus!', 5);
+  };
+
+  const handleLotusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    soundManager.playMagic();
+    setLotusGlowState(true);
+    setTimeout(() => setLotusGlowState(false), 800);
+    spawnFloatingText(e.clientX || 200, (e.clientY || 250) - 30, '✨ Lotus Blooming!');
+    if (onInteract) onInteract('The Moonlight Lotus opened its petals!', 3);
+  };
+
+  const handleSproutClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    soundManager.playTap();
+    spawnFloatingText(e.clientX || 150, (e.clientY || 280) - 30, '🌱 Sprout Growing!');
+  };
+
   return (
-    <div className="relative w-full h-[320px] md:h-[380px] rounded-2xl overflow-hidden bg-gradient-to-b from-emerald-950/80 via-slate-900 to-slate-950 border border-emerald-500/20 shadow-2xl flex items-center justify-center select-none">
+    <div
+      className={`relative w-full h-[320px] md:h-[380px] rounded-2xl overflow-hidden border shadow-2xl flex items-center justify-center select-none transition-colors duration-1000 ${
+        isNight
+          ? 'bg-gradient-to-b from-[#021b18] via-[#052e26] to-[#011412] border-teal-500/30'
+          : 'bg-gradient-to-b from-emerald-950/90 via-slate-900 to-slate-950 border-emerald-500/20'
+      }`}
+    >
+      {/* Interactive Time / Weather Toggle */}
+      <button
+        type="button"
+        onClick={() => {
+          soundManager.playTap();
+          setIsNight(!isNight);
+        }}
+        className="absolute top-4 left-4 z-30 p-2 rounded-xl bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 text-emerald-400 hover:text-white transition-all cursor-pointer shadow-lg hover:scale-105"
+        title={isNight ? 'Switch to Sunlit Dawn' : 'Switch to Aurora Twilight'}
+      >
+        {isNight ? <Moon className="w-4 h-4 text-teal-300" /> : <Sun className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '20s' }} />}
+      </button>
+
+      {/* Floating Animated Text Particles */}
+      {floatingTexts.map((ft) => (
+        <div
+          key={ft.id}
+          className="fixed z-50 pointer-events-none text-xs font-bold px-2 py-1 rounded-full bg-emerald-500 text-slate-950 shadow-lg animate-bounce"
+          style={{
+            left: `${ft.x}px`,
+            top: `${ft.y}px`,
+            transition: 'all 0.8s ease-out',
+          }}
+        >
+          {ft.text}
+        </div>
+      ))}
+
       {/* Ambient background sky & sun rays */}
       <div className="absolute inset-0 pointer-events-none opacity-40">
-        <div className="absolute -top-12 left-1/4 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl animate-pulse-subtle" />
+        <div className={`absolute -top-12 left-1/4 w-72 h-72 rounded-full blur-3xl transition-colors duration-1000 ${isNight ? 'bg-teal-500/20' : 'bg-emerald-500/20'} animate-pulse-subtle`} />
         <div className="absolute top-10 right-1/4 w-60 h-60 bg-amber-400/15 rounded-full blur-2xl" />
-        {/* Floating Sunlit Pollen Particles */}
+
+        {/* Drifting Fireflies & Pollen Particles */}
         <div className="absolute top-1/4 left-1/5 w-2 h-2 bg-emerald-300 rounded-full blur-[1px] animate-sparkle" />
         <div className="absolute top-1/3 right-1/3 w-2.5 h-2.5 bg-amber-200 rounded-full blur-[1px] animate-sparkle" style={{ animationDelay: '0.8s' }} />
         <div className="absolute top-1/2 left-2/3 w-1.5 h-1.5 bg-teal-200 rounded-full blur-[1px] animate-sparkle" style={{ animationDelay: '1.4s' }} />
@@ -27,11 +108,6 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          <linearGradient id="gardenSky" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#064e3b" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#022c22" stopOpacity="0.9" />
-          </linearGradient>
-
           <linearGradient id="gardenSoil" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#047857" />
             <stop offset="30%" stopColor="#064e3b" />
@@ -45,7 +121,7 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
           </linearGradient>
 
           <radialGradient id="lotusGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#6ee7b7" stopOpacity="0.8" />
+            <stop offset="0%" stopColor={isNight ? '#5eead4' : '#6ee7b7'} stopOpacity="0.9" />
             <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
           </radialGradient>
 
@@ -55,7 +131,7 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
           </filter>
         </defs>
 
-        {/* Rolling Green Hills in Background */}
+        {/* Rolling Hills in Background */}
         <path
           d="M0 320 Q 200 260, 400 300 T 800 290 L 800 450 L 0 450 Z"
           fill="#065f46"
@@ -66,11 +142,18 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
           fill="url(#gardenSoil)"
         />
 
-        {/* Dynamic Flora Elements based on Growth Stage */}
+        {/* FLUTTERING SPIRIT BUTTERFLY (Living Animated Entity) */}
+        <g className="animate-float" style={{ transformOrigin: '200px 180px' }}>
+          <g transform="translate(220, 160)">
+            <ellipse cx="-6" cy="-4" rx="8" ry="5" fill="#a7f3d0" opacity="0.85" transform="rotate(-20)" />
+            <ellipse cx="6" cy="-4" rx="8" ry="5" fill="#a7f3d0" opacity="0.85" transform="rotate(20)" />
+            <ellipse cx="0" cy="0" rx="2" ry="6" fill="#047857" />
+          </g>
+        </g>
 
-        {/* STAGE 1: Sprouts & Moss Clearings */}
+        {/* STAGE 1: Clickable Sprouts */}
         {growthStage >= 1 && (
-          <g className="animate-grow">
+          <g className="animate-grow cursor-pointer" onClick={handleSproutClick}>
             {/* Left Sprout */}
             <path
               d="M 180 370 Q 170 340 185 320 Q 200 340 180 370"
@@ -82,7 +165,6 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
               d="M 185 335 Q 210 325 215 340 Q 195 350 185 335"
               fill="#6ee7b7"
             />
-            {/* Small Flower */}
             <circle cx="185" cy="320" r="5" fill="#fef08a" />
 
             {/* Right Sprout */}
@@ -100,13 +182,16 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
           </g>
         )}
 
-        {/* STAGE 2: Blooming Water Lilies & Crystal Pond */}
+        {/* STAGE 2: Interactive Blooming Water Lilies & Crystal Pond */}
         {growthStage >= 2 && (
-          <g className="animate-grow">
+          <g
+            className={`animate-grow cursor-pointer transition-transform ${lotusGlowState ? 'scale-105' : ''}`}
+            onClick={handleLotusClick}
+          >
             {/* Pond Reflection */}
             <ellipse cx="400" cy="385" rx="160" ry="32" fill="#0d9488" opacity="0.4" />
             <ellipse cx="400" cy="385" rx="140" ry="24" fill="#14b8a6" opacity="0.6" />
-            <ellipse cx="400" cy="385" rx="110" ry="16" fill="url(#lotusGlow)" />
+            <ellipse cx="400" cy="385" rx="110" ry="16" fill="url(#lotusGlow)" filter="url(#emeraldGlow)" />
 
             {/* Water Lilies */}
             <g transform="translate(350, 375)">
@@ -126,7 +211,7 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
         {growthStage >= 3 && (
           <g className="animate-grow">
             {/* Sakura Bush Left */}
-            <g transform="translate(140, 290)">
+            <g transform="translate(140, 290)" className="cursor-pointer" onClick={handleLotusClick}>
               <path d="M 0 60 Q 20 20 40 0 Q 60 20 80 60 Z" fill="#065f46" />
               <circle cx="30" cy="15" r="22" fill="#f472b6" opacity="0.85" filter="url(#emeraldGlow)" />
               <circle cx="55" cy="20" r="18" fill="#fb7185" opacity="0.85" />
@@ -134,7 +219,7 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
             </g>
 
             {/* Radiant Ferns Right */}
-            <g transform="translate(640, 290)">
+            <g transform="translate(640, 290)" className="cursor-pointer" onClick={handleSproutClick}>
               <path d="M 0 60 Q 30 10 60 0 Q 70 30 80 60 Z" fill="#047857" />
               <circle cx="40" cy="20" r="20" fill="#34d399" opacity="0.8" filter="url(#emeraldGlow)" />
               <circle cx="25" cy="35" r="16" fill="#a7f3d0" opacity="0.9" />
@@ -142,16 +227,14 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
           </g>
         )}
 
-        {/* STAGE 4: Ancient Carved Stone Lanterns & Bioluminescent Willow */}
+        {/* STAGE 4: Ancient Carved Stone Lanterns */}
         {growthStage >= 4 && (
           <g className="animate-grow">
-            {/* Stone Lantern Left */}
             <g transform="translate(250, 310)">
               <rect x="0" y="30" width="16" height="40" rx="2" fill="#64748b" />
               <polygon points="-6,30 22,30 14,14 -2,14" fill="#475569" />
               <rect x="2" y="18" width="12" height="12" fill="#fef08a" filter="url(#emeraldGlow)" opacity="0.9" />
             </g>
-            {/* Stone Lantern Right */}
             <g transform="translate(530, 310)">
               <rect x="0" y="30" width="16" height="40" rx="2" fill="#64748b" />
               <polygon points="-6,30 22,30 14,14 -2,14" fill="#475569" />
@@ -160,11 +243,15 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
           </g>
         )}
 
-        {/* STAGE 5 (or Main Central Tree scaling by stage) */}
-        <g transform="translate(400, 360)" className="animate-sway">
+        {/* STAGE 5: Interactive Central World Tree */}
+        <g
+          transform="translate(400, 360)"
+          className={`cursor-pointer transition-all duration-300 ${treeWobble ? 'animate-bounce scale-105' : 'animate-sway'}`}
+          onClick={handleTreeClick}
+        >
           {/* Main Tree Trunk */}
           <path
-            d={`M -24 0 C -30 -60 -15 -140 -8 -180 C 0 -190 8 -190 16 -180 C 25 -140 35 -60 28 0 Z`}
+            d="M -24 0 C -30 -60 -15 -140 -8 -180 C 0 -190 8 -190 16 -180 C 25 -140 35 -60 28 0 Z"
             fill="url(#treeBark)"
           />
           {/* Roots */}
@@ -208,17 +295,17 @@ export const GardenScene: React.FC<GardenSceneProps> = ({ growthStage }) => {
           {/* Stage 5 Sacred Core of Vitality */}
           {growthStage >= 5 && (
             <g transform="translate(0, -210)" className="animate-pulse-subtle">
-              <circle cx="0" cy="0" r="16" fill="#fef08a" filter="url(#emeraldGlow)" />
-              <circle cx="0" cy="0" r="8" fill="#ffffff" />
+              <circle cx="0" cy="0" r="18" fill="#fef08a" filter="url(#emeraldGlow)" />
+              <circle cx="0" cy="0" r="9" fill="#ffffff" />
             </g>
           )}
         </g>
       </svg>
 
       {/* Dynamic Realm Stage Label Badge */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 text-emerald-400 text-xs font-semibold shadow-lg">
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 text-emerald-400 text-xs font-semibold shadow-lg">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-        Botanical Sanctuary &bull; Stage {growthStage}/5
+        Botanical Sanctuary &bull; Stage {growthStage}/5 (Tap to Harvest)
       </div>
     </div>
   );

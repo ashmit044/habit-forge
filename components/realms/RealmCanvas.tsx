@@ -17,6 +17,7 @@ interface RealmCanvasProps {
   onUpgradeStructure: (structureId: string) => void;
   onAddStructure: (realmType: RealmType, itemKey: string) => void;
   onOpenCreateGoalModal?: () => void;
+  onInteractHarvest?: (realmType: RealmType, gain: number) => void;
 }
 
 export const RealmCanvas: React.FC<RealmCanvasProps> = ({
@@ -24,6 +25,7 @@ export const RealmCanvas: React.FC<RealmCanvasProps> = ({
   onUpgradeStructure,
   onAddStructure,
   onOpenCreateGoalModal,
+  onInteractHarvest,
 }) => {
   const [selectedStructure, setSelectedStructure] = useState<PlacedStructure | null>(null);
   const [isBuildDrawerOpen, setIsBuildDrawerOpen] = useState(false);
@@ -34,18 +36,24 @@ export const RealmCanvas: React.FC<RealmCanvasProps> = ({
     Math.round((realmProg.currentPoints / realmProg.pointsToNextStage) * 100)
   );
 
+  const handleSceneInteract = (msg: string, gain: number = 5) => {
+    if (onInteractHarvest) {
+      onInteractHarvest(realmProg.realmType, gain);
+    }
+  };
+
   const renderScene = () => {
     switch (realmProg.realmType) {
       case 'garden':
-        return <GardenScene growthStage={realmProg.growthStage} />;
+        return <GardenScene growthStage={realmProg.growthStage} onInteract={handleSceneInteract} />;
       case 'military':
-        return <MilitaryBaseScene growthStage={realmProg.growthStage} />;
+        return <MilitaryBaseScene growthStage={realmProg.growthStage} onInteract={handleSceneInteract} />;
       case 'town':
-        return <TownScene growthStage={realmProg.growthStage} />;
+        return <TownScene growthStage={realmProg.growthStage} onInteract={handleSceneInteract} />;
       case 'space':
-        return <SpaceColonyScene growthStage={realmProg.growthStage} />;
+        return <SpaceColonyScene growthStage={realmProg.growthStage} onInteract={handleSceneInteract} />;
       case 'arcane':
-        return <WizardAcademyScene growthStage={realmProg.growthStage} />;
+        return <WizardAcademyScene growthStage={realmProg.growthStage} onInteract={handleSceneInteract} />;
     }
   };
 
