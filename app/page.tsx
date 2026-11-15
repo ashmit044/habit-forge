@@ -51,6 +51,20 @@ export default function Home() {
     refreshAllData();
   }, []);
 
+  useEffect(() => {
+    if (!isClient || quests.length === 0) return;
+
+    const expiryTimes = quests.map((quest) => Date.parse(quest.expiresAt)).filter(Number.isFinite);
+    if (expiryTimes.length === 0) return;
+
+    const nextExpiry = Math.min(...expiryTimes);
+    const timeoutId = window.setTimeout(() => {
+      setQuests(storage.getQuests());
+    }, Math.max(0, nextExpiry - Date.now() + 50));
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isClient, quests]);
+
   const refreshAllData = () => {
     const loadedHabits = storage.getHabits();
     const loadedUser = storage.getUserProfile();
@@ -159,6 +173,7 @@ export default function Home() {
       const currentProg = realms[targetRealmKey];
       const newPoints = currentProg.currentPoints + realmPoints;
       const newResource = currentProg.resourceAmount + Math.round(realmPoints * 0.6);
+      const resourceGain = newResource - currentProg.resourceAmount;
       let newStage = currentProg.growthStage;
       let newPointsTarget = currentProg.pointsToNextStage;
 
@@ -184,15 +199,23 @@ export default function Home() {
       // 3. Log daily activity for heatmap
       storage.logDailyActivity(earnedXP);
 
-      // 4. Update Quests progress
+      // 4. Advance only the quests this completion actually contributes to.
+      const completedBeforeNoon = targetHabit.targetTimeOfDay === 'Morning' && new Date().getHours() < 12;
+      const newHabitStreak = targetHabit.streak + 1;
       const updatedQuests = quests.map((q) => {
-        if (!q.completed) {
-          return {
-            ...q,
-            progress: Math.min(q.target, q.progress + 1),
-          };
+        if (q.completed) return q;
+
+        let nextProgress = q.progress;
+        if (q.objective === 'morning-habits' && completedBeforeNoon) {
+          nextProgress += 1;
+        } else if (q.objective === 'realm-resources') {
+          nextProgress += resourceGain;
+        } else if (q.objective === 'habit-streak') {
+          nextProgress = Math.max(nextProgress, newHabitStreak);
         }
-        return q;
+
+        if (nextProgress === q.progress) return q;
+        return { ...q, progress: Math.min(q.target, nextProgress) };
       });
       setQuests(updatedQuests);
       storage.saveQuests(updatedQuests);
@@ -290,19 +313,29 @@ export default function Home() {
   // Claim Quest Reward
   const handleClaimQuest = (questId: string) => {
     const quest = quests.find((q) => q.id === questId);
-    if (!quest) return;
+    if (!quest || quest.completed || quest.progress < quest.target) return;
 
     const updatedQuests = quests.map((q) => (q.id === questId ? { ...q, completed: true } : q));
     setQuests(updatedQuests);
     storage.saveQuests(updatedQuests);
 
+    const newXP = user.xp + quest.rewardXP;
+    const leveledUp = newXP >= user.xpToNextLevel;
     const updatedUser = {
       ...user,
-      xp: user.xp + quest.rewardXP,
-      coins: user.coins + quest.rewardCoins,
+      xp: newXP,
+      level: user.level + (leveledUp ? 1 : 0),
+      xpToNextLevel: leveledUp ? Math.round(user.xpToNextLevel * 1.5) : user.xpToNextLevel,
+      coins: user.coins + quest.rewardCoins + (leveledUp ? 50 : 0),
     };
     setUser(updatedUser);
     storage.saveUserProfile(updatedUser);
+
+    if (leveledUp) {
+      setNewLevelEarned(updatedUser.level);
+      setIsLevelUpOpen(true);
+      soundManager.playLevelUp();
+    }
   };
 
   const handleClaimAchievement = (achievementId: string) => {

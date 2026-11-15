@@ -135,6 +135,7 @@ export const INITIAL_QUESTS: Quest[] = [
     target: 2,
     completed: false,
     category: 'daily',
+    objective: 'morning-habits',
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
   },
   {
@@ -147,6 +148,7 @@ export const INITIAL_QUESTS: Quest[] = [
     target: 50,
     completed: false,
     category: 'daily',
+    objective: 'realm-resources',
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
   },
   {
@@ -159,6 +161,7 @@ export const INITIAL_QUESTS: Quest[] = [
     target: 5,
     completed: false,
     category: 'streak',
+    objective: 'habit-streak',
     expiresAt: new Date(Date.now() + 86400000 * 3).toISOString(),
   },
 ];
@@ -271,14 +274,50 @@ export class StorageManager {
     if (!this.isClient) return INITIAL_QUESTS;
     try {
       const data = localStorage.getItem(STORAGE_KEY_QUESTS);
+      const now = new Date();
       if (!data) {
-        this.saveQuests(INITIAL_QUESTS);
-        return INITIAL_QUESTS;
+        const initialQuests = INITIAL_QUESTS.map((quest) => ({
+          ...quest,
+          expiresAt: this.getQuestExpiry(now, quest.category),
+        }));
+        this.saveQuests(initialQuests);
+        return initialQuests;
       }
-      return JSON.parse(data);
+
+      const defaults = new Map(INITIAL_QUESTS.map((quest) => [quest.id, quest]));
+      const savedQuests = JSON.parse(data) as Quest[];
+      const quests = savedQuests.map((savedQuest) => {
+        const template = defaults.get(savedQuest.id);
+        const quest: Quest = {
+          ...template,
+          ...savedQuest,
+          objective: savedQuest.objective ?? template?.objective,
+        };
+        const expiresAt = Date.parse(quest.expiresAt);
+
+        if (!Number.isFinite(expiresAt) || expiresAt <= now.getTime()) {
+          return {
+            ...quest,
+            progress: 0,
+            completed: false,
+            expiresAt: this.getQuestExpiry(now, quest.category),
+          };
+        }
+
+        return quest;
+      });
+
+      this.saveQuests(quests);
+      return quests;
     } catch {
       return INITIAL_QUESTS;
     }
+  }
+
+  private getQuestExpiry(now: Date, category: Quest['category']): string {
+    const expiresAt = new Date(now);
+    expiresAt.setHours(expiresAt.getHours() + (category === 'streak' ? 72 : 24));
+    return expiresAt.toISOString();
   }
 
   public saveQuests(quests: Quest[]): void {

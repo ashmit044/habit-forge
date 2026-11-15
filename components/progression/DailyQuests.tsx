@@ -38,7 +38,7 @@ export const DailyQuests: React.FC<DailyQuestsProps> = ({ quests, onClaimQuest }
             <h2 id="quests-heading" className="journal-heading text-lg">Daily quests</h2>
           </div>
         </div>
-        <span className="text-xs text-[#929783]">Refreshes daily</span>
+        <span className="text-xs text-[#929783]">Daily reset · streak trial every 3 days</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">

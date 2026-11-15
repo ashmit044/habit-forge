@@ -79,6 +79,7 @@ export interface Quest {
   target: number;
   completed: boolean;
   category: 'daily' | 'epic' | 'streak';
+  objective?: 'morning-habits' | 'realm-resources' | 'habit-streak';
   expiresAt: string;
 }
 
