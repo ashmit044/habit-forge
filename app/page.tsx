@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Habit, PlacedStructure, Quest, RealmProgression, RealmType, TechUnlock, UserProfile } from '@/lib/types';
 import { storage } from '@/lib/storage';
 import { REALM_DEFINITIONS } from '@/lib/realm-config';
@@ -76,20 +76,25 @@ export default function Home() {
   };
 
   // Canvas Tap Harvest Interactive Reward
-  const handleCanvasInteractHarvest = (realmType: RealmType, gain: number) => {
-    const currentProg = realms[realmType];
+  const handleSelectStructure = useCallback((object: Interactive3DObject | null) => {
+    setSelected3DObject(object);
+  }, []);
+
+  const handleCanvasInteractHarvest = useCallback((realmType: RealmType, gain: number) => {
+    const currentRealms = storage.getRealms();
+    const currentProg = currentRealms[realmType];
     const updatedProg = {
       ...currentProg,
       resourceAmount: currentProg.resourceAmount + gain,
       currentPoints: currentProg.currentPoints + Math.round(gain * 0.5),
     };
     const updatedRealms = {
-      ...realms,
+      ...currentRealms,
       [realmType]: updatedProg,
     };
     setRealms(updatedRealms);
     storage.saveRealms(updatedRealms);
-  };
+  }, []);
 
   // Complete / Uncomplete Habit
   const handleToggleComplete = (habitId: string) => {
@@ -438,7 +443,7 @@ export default function Home() {
             <ThreeRealmCanvas
               realmProg={currentRealmProg}
               selectedStructureId={selected3DObject?.id || null}
-              onSelectStructure={(obj) => setSelected3DObject(obj)}
+              onSelectStructure={handleSelectStructure}
               onInteractHarvest={handleCanvasInteractHarvest}
             />
 

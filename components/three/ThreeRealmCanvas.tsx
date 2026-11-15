@@ -349,6 +349,25 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
       window.removeEventListener('mouseup', onMouseUp);
       domElement.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', handleResize);
+
+      const geometries = new Set<THREE.BufferGeometry>();
+      const materials = new Set<THREE.Material>();
+      scene.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        geometries.add(object.geometry);
+        const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
+        meshMaterials.forEach((material) => materials.add(material));
+      });
+
+      const textures = new Set<THREE.Texture>();
+      materials.forEach((material) => {
+        Object.values(material).forEach((value) => {
+          if (value instanceof THREE.Texture) textures.add(value);
+        });
+      });
+      geometries.forEach((geometry) => geometry.dispose());
+      materials.forEach((material) => material.dispose());
+      textures.forEach((texture) => texture.dispose());
       renderer.dispose();
     };
   }, [realmProg.realmType, realmProg.growthStage, onSelectStructure, onInteractHarvest]);
