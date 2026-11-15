@@ -14,14 +14,17 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ user, realms }) =>
   const realmKeys: RealmType[] = ['garden', 'military', 'town', 'space', 'arcane'];
 
   return (
-    <div className="p-4 rounded-xl studio-panel space-y-3">
+    <section className="p-4 sm:p-5 rounded-md studio-panel space-y-4" aria-labelledby="realm-stats-heading">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-          <Globe className="w-3.5 h-3.5 text-blue-400" />
-          Realm Overview & Empire Stats
-        </h3>
-        <span className="text-[11px] text-[#71717a]">
-          Combo Multiplier: <strong className="text-white">{user.multiplier.toFixed(1)}x</strong>
+        <div>
+          <p className="journal-kicker">Long view</p>
+          <h2 id="realm-stats-heading" className="journal-heading text-lg flex items-center gap-2">
+            <Globe className="w-4 h-4 text-[#9db28c]" />
+            Realm ledger
+          </h2>
+        </div>
+        <span className="text-xs text-[#929783]">
+          Multiplier <strong className="text-[#d7bd83]">{user.multiplier.toFixed(1)}×</strong>
         </span>
       </div>
 
@@ -33,14 +36,14 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ user, realms }) =>
           return (
             <div
               key={realmKey}
-              className="p-2.5 rounded-lg bg-[#141418] border border-[#27272a] space-y-1.5"
+              className="p-3 rounded-sm bg-[#1c261e] border border-[#354033] space-y-2"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white truncate">
+                <span className="text-sm font-semibold text-[#eee9d9] truncate">
                   {meta.name.split(' ')[0]}
                 </span>
                 <span
-                  className="text-[9px] px-1 py-0.2 rounded font-bold"
+                  className="text-[10px] px-1.5 py-1 rounded-sm font-bold"
                   style={{
                     backgroundColor: `${meta.accentColor}20`,
                     color: meta.accentColor,
@@ -50,12 +53,12 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ user, realms }) =>
                 </span>
               </div>
 
-              <div className="text-[11px] text-[#71717a]">
+              <div className="text-xs text-[#929783]">
                 <span>{prog.resourceAmount} </span>
                 <span>{prog.resourceName.split(' ')[0]}</span>
               </div>
 
-              <div className="w-full h-1 rounded-full bg-[#27272a] overflow-hidden">
+              <div className="w-full h-1 rounded-full bg-[#30392d] overflow-hidden">
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -68,6 +71,6 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ user, realms }) =>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 };

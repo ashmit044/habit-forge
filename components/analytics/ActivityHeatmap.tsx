@@ -41,31 +41,32 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
   }
 
   const getIntensityClass = (count: number) => {
-    if (count === 0) return 'bg-[#18181b] border-[#27272a] text-[#71717a]';
-    if (count === 1) return 'bg-emerald-950 border-emerald-800 text-emerald-300';
-    if (count === 2) return 'bg-emerald-800 border-emerald-700 text-emerald-200';
-    if (count === 3) return 'bg-emerald-600 border-emerald-500 text-white';
-    return 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold';
+    if (count === 0) return 'bg-[#141b15] border-[#30392d] text-[#929783]';
+    if (count === 1) return 'bg-[#354b38] border-[#52684d] text-[#c0c0a9]';
+    if (count === 2) return 'bg-[#506b4d] border-[#718565] text-[#eee9d9]';
+    if (count === 3) return 'bg-[#789269] border-[#96a882] text-[#171b14]';
+    return 'bg-[#c8a96c] border-[#d7bd83] text-[#171b14] font-bold';
   };
 
   return (
-    <div className="p-4 rounded-xl studio-panel space-y-3">
+    <section className="p-4 sm:p-5 rounded-md studio-panel space-y-4" aria-labelledby="consistency-heading">
       {/* Header & Metrics */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-            Consistency Heatmap (Last 6 Weeks)
-          </h3>
+          <Calendar className="w-4 h-4 text-[#9db28c]" />
+          <div>
+            <p className="journal-kicker">Your rhythm</p>
+            <h2 id="consistency-heading" className="journal-heading text-lg">Six-week record</h2>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 text-xs font-semibold">
-          <div className="flex items-center gap-1 text-[#f4f4f5]">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="flex items-center gap-1 text-[#c0c0a9]">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#9db28c]" />
             <span>{totalCompletions} Total Done</span>
           </div>
           <div className="flex items-center gap-1 text-[#f4f4f5]">
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <Flame className="w-3.5 h-3.5 text-[#c8a96c]" />
             <span>{currentStreak}d Streak</span>
           </div>
         </div>
@@ -76,14 +77,14 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
         {days.map((day, idx) => (
           <div
             key={idx}
-            className={`h-8 rounded-md border flex flex-col items-center justify-center text-[10px] transition-all cursor-default group relative ${getIntensityClass(
+            className={`h-8 rounded-sm border flex flex-col items-center justify-center text-[10px] transition-colors cursor-default group relative ${getIntensityClass(
               day.count
             )}`}
           >
             <span>{day.dayNum}</span>
 
             {/* Subtle Hover Tooltip */}
-            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-30 px-2 py-1 rounded bg-black border border-[#3f3f46] text-[10px] whitespace-nowrap text-white shadow">
+            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-30 px-2 py-1 rounded-sm bg-[#202a21] border border-[#59624b] text-[10px] whitespace-nowrap text-[#eee9d9] shadow-lg">
               {day.dateStr}: {day.count} habits ({day.xp} XP)
             </div>
           </div>
@@ -91,17 +92,17 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
       </div>
 
       {/* Intensity Legend */}
-      <div className="flex items-center justify-between text-[11px] text-[#71717a] pt-1">
+      <div className="flex items-center justify-between text-[11px] text-[#929783] pt-1">
         <span>Less consistent</span>
         <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded bg-[#18181b] border border-[#27272a]" />
-          <div className="w-2.5 h-2.5 rounded bg-emerald-950 border border-emerald-800" />
-          <div className="w-2.5 h-2.5 rounded bg-emerald-800 border border-emerald-700" />
-          <div className="w-2.5 h-2.5 rounded bg-emerald-600 border border-emerald-500" />
-          <div className="w-2.5 h-2.5 rounded bg-emerald-500 border border-emerald-400" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#141b15] border border-[#30392d]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#354b38] border border-[#52684d]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#506b4d] border border-[#718565]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#789269] border border-[#96a882]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#c8a96c] border border-[#d7bd83]" />
         </div>
         <span>More consistent</span>
       </div>
-    </div>
+    </section>
   );
 };

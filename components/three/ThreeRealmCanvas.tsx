@@ -65,8 +65,8 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     // 1. Scene Setup
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    scene.background = new THREE.Color(0x121216);
-    scene.fog = new THREE.FogExp2(0x121216, 0.015);
+    scene.background = new THREE.Color(0x18221b);
+    scene.fog = new THREE.FogExp2(0x18221b, 0.015);
 
     // 2. Camera Setup
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 200);
@@ -285,12 +285,12 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
-    const dayBg = new THREE.Color(0x121216);
-    const nightBg = new THREE.Color(0x06080f);
+    const dayBg = new THREE.Color(0x18221b);
+    const nightBg = new THREE.Color(0x080f13);
     const dayAmb = new THREE.Color(0xffffff);
-    const nightAmb = new THREE.Color(0x1e293b);
-    const dayDir = new THREE.Color(0xffedd5);
-    const nightDir = new THREE.Color(0x93c5fd);
+    const nightAmb = new THREE.Color(0x233b3d);
+    const dayDir = new THREE.Color(0xf3e3bc);
+    const nightDir = new THREE.Color(0x9fc3bd);
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
@@ -374,70 +374,76 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[360px] md:h-[440px] rounded-xl overflow-hidden studio-panel bg-[#09090b] border border-[#27272a] shadow-lg select-none">
+    <section aria-label={`${meta.name} world scene`} className="relative w-full h-[360px] md:h-[520px] rounded-md overflow-hidden studio-panel bg-[#111713] border border-[#59624b] shadow-[0_20px_60px_rgba(4,9,5,0.3)] select-none">
       {/* 3D WebGL Canvas Container */}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
       {/* Hovered Building Tooltip Badge */}
       {hoveredObjectName && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-md bg-[#18181b]/90 border border-[#3f3f46] text-xs font-semibold text-white shadow animate-fadeIn pointer-events-none flex items-center gap-1.5">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 px-3 py-2 rounded-sm bg-[#111713]/95 border border-[#9a8358] text-xs font-semibold text-[#eee9d9] shadow-lg animate-fadeIn pointer-events-none flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.accentColor }} />
-          <span>{hoveredObjectName} &bull; Click to Select</span>
+          <span>{hoveredObjectName} · Select to inspect</span>
         </div>
       )}
 
       {/* Camera & Lighting Controls Overlay (Top Right) */}
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 p-1 rounded-lg bg-[#121215]/80 border border-[#27272a] backdrop-blur-sm shadow">
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 p-1.5 rounded-md bg-[#111713]/90 border border-[#59624b] shadow-lg">
         <button
           type="button"
+          aria-label="Isometric view"
           onClick={() => setCameraPreset('iso')}
-          className={`p-1.5 rounded text-xs font-medium transition-colors ${
-            cameraMode === 'iso' ? 'bg-[#27272a] text-white' : 'text-[#a1a1aa] hover:text-white'
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
+            cameraMode === 'iso' ? 'bg-[#c8a96c] text-[#171b14]' : 'text-[#c0c0a9] hover:bg-[#30392d] hover:text-[#eee9d9]'
           }`}
           title="Isometric Angle"
         >
           <Layers className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Orbit</span>
         </button>
         <button
           type="button"
+          aria-label="Top-down view"
           onClick={() => setCameraPreset('top')}
-          className={`p-1.5 rounded text-xs font-medium transition-colors ${
-            cameraMode === 'top' ? 'bg-[#27272a] text-white' : 'text-[#a1a1aa] hover:text-white'
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[11px] font-semibold transition-colors ${
+            cameraMode === 'top' ? 'bg-[#c8a96c] text-[#171b14]' : 'text-[#c0c0a9] hover:bg-[#30392d] hover:text-[#eee9d9]'
           }`}
           title="Top-Down Plan View"
         >
           <Eye className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Plan</span>
         </button>
         <button
           type="button"
+          aria-label="Reset camera"
           onClick={() => setCameraPreset('reset')}
-          className="p-1.5 rounded text-xs font-medium text-[#a1a1aa] hover:text-white transition-colors"
+          className="p-2 rounded-sm text-[#c0c0a9] hover:bg-[#30392d] hover:text-[#eee9d9] transition-colors"
           title="Reset Camera Orientation"
         >
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
 
-        <div className="w-[1px] h-3.5 bg-[#27272a] mx-0.5" />
+        <div className="w-px h-5 bg-[#48513e] mx-1" />
 
         <button
           type="button"
+          aria-pressed={isNight}
           onClick={() => {
             soundManager.playTap();
             setIsNight(!isNight);
           }}
           className={`p-1.5 rounded text-xs transition-colors flex items-center gap-1 font-semibold ${
-            isNight ? 'bg-[#1e293b] text-sky-300 border border-sky-500/30' : 'text-[#a1a1aa] hover:text-white'
+            isNight ? 'bg-[#263b3b] text-[#b6d8cf] border border-[#526f66]' : 'text-[#c0c0a9] hover:bg-[#30392d] hover:text-[#eee9d9]'
           }`}
           title={isNight ? 'Switch to Daylight' : 'Switch to Realistic Night Mode'}
         >
           {isNight ? (
             <>
-              <Moon className="w-3.5 h-3.5 text-sky-300" />
+              <Moon className="w-3.5 h-3.5 text-[#b6d8cf]" />
               <span className="text-[10px] hidden sm:inline">Night</span>
             </>
           ) : (
             <>
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <Sun className="w-3.5 h-3.5 text-[#d7bd83]" />
               <span className="text-[10px] hidden sm:inline">Day</span>
             </>
           )}
@@ -445,28 +451,29 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
       </div>
 
       {/* Floating Realm Resource & Stage Counter (Top Left) */}
-      <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
-        <div className="px-3 py-1.5 rounded-lg bg-[#121215]/90 border border-[#27272a] backdrop-blur-sm text-xs font-semibold text-white shadow flex items-center gap-2">
+      <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5">
+        <span className="journal-kicker text-[9px]">Realm treasury</span>
+        <div className="px-3 py-2 rounded-sm bg-[#111713]/90 border border-[#59624b] text-xs font-semibold text-[#eee9d9] shadow-lg flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.accentColor }} />
-          <span>{realmProg.resourceAmount}</span>
-          <span className="text-[#a1a1aa] font-normal">{realmProg.resourceName}</span>
+          <span className="tabular-nums">{realmProg.resourceAmount}</span>
+          <span className="text-[#b9bba5] font-normal">{realmProg.resourceName}</span>
         </div>
       </div>
 
       {/* Bottom Stage Progression Bar */}
       <div className="absolute bottom-3 inset-x-3 z-20">
-        <div className="px-3.5 py-2 rounded-lg bg-[#121215]/90 border border-[#27272a] backdrop-blur-sm flex flex-col gap-1.5 shadow">
+        <div className="px-3.5 py-2.5 rounded-sm bg-[#111713]/95 border border-[#59624b] flex flex-col gap-1.5 shadow-lg">
           <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-[#f4f4f5] font-medium">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{meta.stageNames[realmProg.growthStage - 1]}</span>
+            <div className="flex items-center gap-1.5 text-[#eee9d9] font-medium">
+              <TrendingUp className="w-3.5 h-3.5 text-[#9db28c]" />
+              <span>Stage {realmProg.growthStage} · {meta.stageNames[realmProg.growthStage - 1]}</span>
             </div>
-            <span className="text-[#a1a1aa]">
+            <span className="text-[#b9bba5]">
               {realmProg.currentPoints} / {realmProg.pointsToNextStage} XP ({progressPercent}%)
             </span>
           </div>
 
-          <div className="w-full h-1.5 rounded-full bg-[#27272a] overflow-hidden">
+          <div className="w-full h-1.5 rounded-full bg-[#30392d] overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
@@ -477,6 +484,6 @@ export const ThreeRealmCanvas: React.FC<ThreeRealmCanvasProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

@@ -67,14 +67,15 @@ export const HabitList: React.FC<HabitListProps> = ({
       {/* Header & Quick Action Buttons */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <span>Daily Missions & Goals</span>
-            <span className="text-[11px] px-1.5 py-0.2 rounded bg-[#18181b] border border-[#27272a] text-[#a1a1aa] font-medium">
+          <p className="journal-kicker mb-1">Today’s practice</p>
+          <h2 className="journal-heading text-xl sm:text-2xl flex items-center gap-2">
+            <span>Daily habits</span>
+            <span className="text-xs px-2 py-1 rounded-sm bg-[#202a21] border border-[#48513e] text-[#c0c0a9] font-medium font-sans">
               {completedCount}/{totalCount}
             </span>
-          </h3>
-          <p className="text-xs text-[#71717a]">
-            Complete goals to cultivate and expand your selected realms.
+          </h2>
+          <p className="text-sm text-[#929783] mt-1">
+            A little progress in {meta.name} goes a long way.
           </p>
         </div>
 
@@ -85,9 +86,9 @@ export const HabitList: React.FC<HabitListProps> = ({
               soundManager.playTap();
               onOpenAICoach();
             }}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-[#a1a1aa] hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-[#202a21] hover:bg-[#2b352b] border border-[#48513e] text-[#c0c0a9] hover:text-[#eee9d9] transition-colors cursor-pointer"
           >
-            <Bot className="w-3.5 h-3.5 text-violet-400" />
+            <Bot className="w-3.5 h-3.5 text-[#c8a96c]" />
             <span className="hidden sm:inline">AI Coach</span>
           </button>
 
@@ -97,7 +98,7 @@ export const HabitList: React.FC<HabitListProps> = ({
               soundManager.playTap();
               onOpenCreateModal();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-white hover:bg-neutral-200 text-black transition-colors cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-[#c8a96c] hover:bg-[#d7bd83] text-[#171b14] transition-colors cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Set Goal</span>
@@ -106,16 +107,16 @@ export const HabitList: React.FC<HabitListProps> = ({
       </div>
 
       {/* Active Realm Objective Summary Bar */}
-      <div className="p-3 rounded-lg studio-panel border border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="p-3 rounded-md studio-panel flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Target className="w-3.5 h-3.5 shrink-0" style={{ color: meta.accentColor }} />
           <div className="text-xs truncate">
-            <span className="font-semibold text-white">{meta.name}:</span>{' '}
-            <span className="text-[#a1a1aa]">{meta.primaryGoalTitle}</span>
+            <span className="font-semibold text-[#eee9d9]">{meta.name}:</span>{' '}
+            <span className="text-[#b9bba5]">{meta.primaryGoalTitle}</span>
           </div>
         </div>
 
-        <span className="text-[11px] px-2 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-[#a1a1aa] font-medium shrink-0">
+        <span className="text-[11px] px-2 py-1 rounded-sm bg-[#202a21] border border-[#48513e] text-[#c0c0a9] font-medium shrink-0">
           {realmCompletedCount}/{realmHabits.length} Realm Done
         </span>
       </div>
@@ -130,7 +131,8 @@ export const HabitList: React.FC<HabitListProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search goals..."
-            className="w-full pl-8 pr-3 py-1.5 rounded-md bg-[#121215] border border-[#27272a] text-xs text-white placeholder-[#71717a] focus:outline-none focus:border-[#3f3f46]"
+            aria-label="Search habits"
+            className="w-full pl-9 pr-3 py-2.5 rounded-md bg-[#141b15] border border-[#354033] text-sm text-[#eee9d9] placeholder-[#929783] focus:outline-none focus:border-[#9a8358]"
           />
         </div>
 
@@ -146,8 +148,8 @@ export const HabitList: React.FC<HabitListProps> = ({
               }}
               className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors cursor-pointer border ${
                 selectedTimeOfDay === time
-                  ? 'bg-[#27272a] text-white border-[#3f3f46]'
-                  : 'bg-[#121215] text-[#a1a1aa] hover:text-white border-[#27272a]'
+                  ? 'bg-[#d7bd83] text-[#171b14] border-[#d7bd83]'
+                  : 'bg-[#141b15] text-[#b9bba5] hover:text-[#eee9d9] border-[#354033]'
               }`}
             >
               {time}
@@ -160,10 +162,11 @@ export const HabitList: React.FC<HabitListProps> = ({
               soundManager.playTap();
               setFilterRealmOnly(!filterRealmOnly);
             }}
-            className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors cursor-pointer border ${
+              aria-pressed={filterRealmOnly}
+              className={`px-2.5 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-colors cursor-pointer border ${
               filterRealmOnly
-                ? 'bg-[#27272a] text-white border-[#3f3f46]'
-                : 'bg-[#121215] text-[#a1a1aa] hover:text-white border-[#27272a]'
+                ? 'bg-[#d7bd83] text-[#171b14] border-[#d7bd83]'
+                : 'bg-[#141b15] text-[#b9bba5] hover:text-[#eee9d9] border-[#354033]'
             }`}
           >
             {meta.name.split(' ')[0]} Only
@@ -190,7 +193,7 @@ export const HabitList: React.FC<HabitListProps> = ({
           {/* Active Goals */}
           {activeHabits.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[11px] font-semibold text-[#71717a] uppercase tracking-wider block px-1">
+              <span className="text-[11px] font-semibold text-[#929783] uppercase tracking-[0.12em] block px-1">
                 To Complete ({activeHabits.length})
               </span>
               <div className="space-y-1.5">
@@ -210,7 +213,7 @@ export const HabitList: React.FC<HabitListProps> = ({
           {/* Completed Goals */}
           {completedHabits.length > 0 && (
             <div className="space-y-1.5 pt-2">
-              <span className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-wider block px-1 flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-[#9db28c] uppercase tracking-[0.12em] block px-1 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Completed ({completedHabits.length})
               </span>

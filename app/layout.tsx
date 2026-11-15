@@ -9,11 +9,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#10b981',
+  themeColor: '#111713',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({
@@ -28,7 +26,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="min-h-screen bg-[#080c14] text-slate-100 ambient-bg antialiased selection:bg-emerald-500 selection:text-slate-950">
+      <body className="min-h-screen bg-[#111713] text-[#eee9d9] antialiased selection:bg-[#c8a96c] selection:text-[#111713]">
         {children}
       </body>
     </html>

@@ -20,6 +20,7 @@ import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap';
 import { StatsOverview } from '@/components/analytics/StatsOverview';
 import { AICoachDrawer } from '@/components/ai/AICoachDrawer';
 import { soundManager } from '@/lib/sound';
+import { Compass } from 'lucide-react';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -342,19 +343,23 @@ export default function Home() {
 
   if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-[#71717a]">
+      <div className="min-h-screen flex items-center justify-center bg-[#111713] text-[#b9bba5]">
         <div className="flex items-center gap-2.5 text-xs font-semibold">
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          <span>Loading 3D Spatial Canvas...</span>
+          <div className="w-4 h-4 border-2 border-[#c8a96c] border-t-transparent rounded-full animate-spin" />
+          <span>Preparing your field guide…</span>
         </div>
       </div>
     );
   }
 
   const currentRealmProg = realms[activeRealm];
+  const currentRealmMeta = REALM_DEFINITIONS[activeRealm];
+  const stageProgress = currentRealmProg.pointsToNextStage > 0
+    ? Math.min(100, Math.round((currentRealmProg.currentPoints / currentRealmProg.pointsToNextStage) * 100))
+    : 100;
 
   return (
-    <div className="min-h-screen pb-16 md:pb-8 text-[#f4f4f5] flex flex-col bg-[#09090b]">
+    <div className="min-h-screen pb-20 md:pb-10 text-[#eee9d9] flex flex-col bg-[#111713]">
       {/* Top Header HUD */}
       <HeaderHUD
         user={user}
@@ -363,7 +368,33 @@ export default function Home() {
         onRefreshData={refreshAllData}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 space-y-4">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6">
+        <section className="flex flex-col gap-4 border-b border-[#354033] pb-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
+          <div>
+            <div className="journal-kicker flex items-center gap-2">
+              <Compass className="h-3.5 w-3.5" aria-hidden="true" />
+              Active realm · {currentRealmMeta.title}
+            </div>
+            <h1 id="page-title" className="journal-heading mt-2 text-3xl sm:text-4xl">{currentRealmMeta.name}</h1>
+            <p className="mt-2 max-w-2xl text-sm text-[#b9bba5]">{currentRealmMeta.tagline}</p>
+          </div>
+          <div className="w-full max-w-xs self-start rounded-md border border-[#48513e] bg-[#19221b] p-3 sm:self-auto">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="journal-kicker">Realm status</p>
+                <p className="mt-1 text-sm font-semibold text-[#eee9d9]">{currentRealmMeta.stageNames[currentRealmProg.growthStage - 1]}</p>
+              </div>
+              <span className="rounded-sm border border-[#9a8358] bg-[#202a21] px-2 py-1 text-[11px] font-bold text-[#d7bd83]">STAGE {String(currentRealmProg.growthStage).padStart(2, '0')}</span>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-[11px] text-[#929783]">
+              <span>Next evolution</span>
+              <span>{currentRealmProg.currentPoints} / {currentRealmProg.pointsToNextStage} XP</span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#30392d]" role="progressbar" aria-label="Realm evolution progress" aria-valuenow={stageProgress} aria-valuemin={0} aria-valuemax={100}>
+              <div className="h-full rounded-full bg-[#c8a96c] transition-[width] duration-500" style={{ width: `${stageProgress}%` }} />
+            </div>
+          </div>
+        </section>
         {/* Realm Selector Switcher Bar */}
         <RealmSelector
           activeRealm={activeRealm}
@@ -372,9 +403,9 @@ export default function Home() {
         />
 
         {/* Main Content Layout: 2-Column Desktop View / Mobile Tabs */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* LEFT COLUMN: 3D Interactive WebGL Viewport & Building Inspector */}
-          <div className={`lg:col-span-6 space-y-3.5 ${activeMobileTab === 'realm' || activeMobileTab === 'habits' ? 'block' : 'hidden md:block'}`}>
+          <div className={`lg:col-span-7 space-y-4 ${activeMobileTab === 'realm' || activeMobileTab === 'habits' ? 'block' : 'hidden md:block'}`}>
             {/* Real 3D WebGL Canvas */}
             <ThreeRealmCanvas
               realmProg={currentRealmProg}
@@ -398,7 +429,7 @@ export default function Home() {
           </div>
 
           {/* RIGHT COLUMN: Habit Tracker List & Analytics Heatmap */}
-          <div className={`lg:col-span-6 space-y-3.5 ${activeMobileTab === 'habits' || activeMobileTab === 'quests' ? 'block' : 'hidden md:block'}`}>
+          <div className={`lg:col-span-5 space-y-4 ${activeMobileTab === 'habits' || activeMobileTab === 'quests' ? 'block' : 'hidden md:block'}`}>
             {/* Habit Tracker List */}
             <HabitList
               habits={habits}
