@@ -20,6 +20,7 @@ export const INITIAL_USER: UserProfile = {
   totalHabitsCompleted: 48,
   longestStreakEver: 12,
   multiplier: 1.4,
+  claimedAchievementIds: [],
 };
 
 export const INITIAL_REALMS_PROGRESSION: Record<RealmType, RealmProgression> = {
@@ -196,7 +197,16 @@ export class StorageManager {
         this.saveUserProfile(INITIAL_USER);
         return INITIAL_USER;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data) as Partial<UserProfile>;
+      const user: UserProfile = {
+        ...INITIAL_USER,
+        ...parsed,
+        claimedAchievementIds: Array.isArray(parsed.claimedAchievementIds)
+          ? parsed.claimedAchievementIds.filter((id): id is string => typeof id === 'string')
+          : [],
+      };
+      this.saveUserProfile(user);
+      return user;
     } catch {
       return INITIAL_USER;
     }

@@ -21,6 +21,8 @@ import { StatsOverview } from '@/components/analytics/StatsOverview';
 import { AICoachDrawer } from '@/components/ai/AICoachDrawer';
 import { soundManager } from '@/lib/sound';
 import { Compass } from 'lucide-react';
+import { getAchievementProgress } from '@/lib/achievements';
+import { AchievementBoard } from '@/components/progression/AchievementBoard';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -298,6 +300,31 @@ export default function Home() {
     storage.saveUserProfile(updatedUser);
   };
 
+  const handleClaimAchievement = (achievementId: string) => {
+    const achievement = getAchievementProgress(user, realms).find((item) => item.id === achievementId);
+    if (!achievement || !achievement.unlocked || achievement.claimed) return;
+
+    const newXP = user.xp + achievement.rewardXP;
+    const leveledUp = newXP >= user.xpToNextLevel;
+    const updatedUser: UserProfile = {
+      ...user,
+      xp: newXP,
+      level: user.level + (leveledUp ? 1 : 0),
+      xpToNextLevel: leveledUp ? Math.round(user.xpToNextLevel * 1.5) : user.xpToNextLevel,
+      coins: user.coins + achievement.rewardCoins + (leveledUp ? 50 : 0),
+      claimedAchievementIds: [...(user.claimedAchievementIds ?? []), achievement.id],
+    };
+
+    setUser(updatedUser);
+    storage.saveUserProfile(updatedUser);
+    soundManager.playStreak();
+
+    if (leveledUp) {
+      setNewLevelEarned(updatedUser.level);
+      setIsLevelUpOpen(true);
+    }
+  };
+
   // Shop Purchases
   const handleBuyShield = () => {
     if (user.coins < 50) return;
@@ -354,6 +381,7 @@ export default function Home() {
 
   const currentRealmProg = realms[activeRealm];
   const currentRealmMeta = REALM_DEFINITIONS[activeRealm];
+  const achievements = getAchievementProgress(user, realms);
   const stageProgress = currentRealmProg.pointsToNextStage > 0
     ? Math.min(100, Math.round((currentRealmProg.currentPoints / currentRealmProg.pointsToNextStage) * 100))
     : 100;
@@ -426,6 +454,7 @@ export default function Home() {
 
             {/* Daily Quests & Challenges */}
             <DailyQuests quests={quests} onClaimQuest={handleClaimQuest} />
+            <AchievementBoard achievements={achievements} onClaim={handleClaimAchievement} />
           </div>
 
           {/* RIGHT COLUMN: Habit Tracker List & Analytics Heatmap */}

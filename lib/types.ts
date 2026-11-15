@@ -94,6 +94,7 @@ export interface UserProfile {
   totalHabitsCompleted: number;
   longestStreakEver: number;
   multiplier: number;
+  claimedAchievementIds: string[];
 }
 
 export interface DailyActivityLog {
