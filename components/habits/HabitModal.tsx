@@ -165,6 +165,7 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                   <button
                     key={rKey}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => {
                       soundManager.playTap();
                       setTargetRealm(rKey);
@@ -250,6 +251,7 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                   <button
                     key={cat}
                     type="button"
+                    aria-pressed={category === cat}
                     onClick={() => {
                       soundManager.playTap();
                       setCategory(cat);
@@ -275,6 +277,7 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                   <button
                     key={diff}
                     type="button"
+                    aria-pressed={difficulty === diff}
                     onClick={() => {
                       soundManager.playTap();
                       setDifficulty(diff);
@@ -304,6 +307,7 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                   <button
                     key={day.key}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => toggleDay(day.key)}
                     className={`flex-1 h-7 rounded text-xs font-semibold transition-colors flex items-center justify-center cursor-pointer border ${
                       isSelected
