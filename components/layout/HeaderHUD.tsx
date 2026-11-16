@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { UserProfile } from '@/lib/types';
 import { soundManager } from '@/lib/sound';
 import { storage } from '@/lib/storage';
+import { toLocalDateKey } from '@/lib/date-utils';
 import { Volume2, VolumeX, Store, GitFork, Download, Upload } from 'lucide-react';
 
 interface HeaderHUDProps {
@@ -34,7 +35,7 @@ export const HeaderHUD: React.FC<HeaderHUDProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `habitforge-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `habitforge-backup-${toLocalDateKey()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -3,6 +3,7 @@
 import React from 'react';
 import { DailyActivityLog } from '@/lib/types';
 import { Calendar, Flame, CheckCircle2 } from 'lucide-react';
+import { toLocalDateKey } from '@/lib/date-utils';
 
 interface ActivityHeatmapProps {
   logs: DailyActivityLog[];
@@ -30,7 +31,7 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
   for (let i = 41; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toLocalDateKey(d);
     const log = logsMap[dateStr];
     days.push({
       dateStr,

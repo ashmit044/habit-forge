@@ -23,6 +23,7 @@ import { soundManager } from '@/lib/sound';
 import { Compass } from 'lucide-react';
 import { getAchievementProgress } from '@/lib/achievements';
 import { AchievementBoard } from '@/components/progression/AchievementBoard';
+import { toLocalDateKey } from '@/lib/date-utils';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -133,7 +134,7 @@ export default function Home() {
           streak: newStreak,
           longestStreak: Math.max(h.longestStreak, newStreak),
           totalCompletions: isNowCompleted ? h.totalCompletions + 1 : Math.max(0, h.totalCompletions - 1),
-          lastCompletedDate: isNowCompleted ? new Date().toISOString().split('T')[0] : h.lastCompletedDate,
+          lastCompletedDate: isNowCompleted ? toLocalDateKey() : h.lastCompletedDate,
         };
       }
       return h;

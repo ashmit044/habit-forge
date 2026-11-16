@@ -1,5 +1,6 @@
 import { DailyActivityLog, Habit, PlacedStructure, Quest, RealmProgression, RealmType, TechUnlock, UserProfile } from './types';
 import { INITIAL_HABITS, INITIAL_TECH_TREE, REALM_DEFINITIONS } from './realm-config';
+import { toLocalDateKey } from './date-utils';
 
 const STORAGE_KEY_HABITS = 'habitforge_habits_v2';
 const STORAGE_KEY_USER = 'habitforge_user_v2';
@@ -173,11 +174,18 @@ export class StorageManager {
     if (!this.isClient) return INITIAL_HABITS;
     try {
       const data = localStorage.getItem(STORAGE_KEY_HABITS);
-      if (!data) {
-        this.saveHabits(INITIAL_HABITS);
-        return INITIAL_HABITS;
+      const habits = (data ? JSON.parse(data) : INITIAL_HABITS) as Habit[];
+      const today = toLocalDateKey();
+      const refreshedHabits = habits.map((habit) => ({
+        ...habit,
+        completedToday: habit.completedToday === true && habit.lastCompletedDate === today,
+      }));
+
+      if (!data || refreshedHabits.some((habit, index) => habit.completedToday !== habits[index].completedToday)) {
+        this.saveHabits(refreshedHabits);
       }
-      return JSON.parse(data);
+
+      return refreshedHabits;
     } catch {
       return INITIAL_HABITS;
     }
@@ -349,7 +357,7 @@ export class StorageManager {
   public logDailyActivity(xp: number): void {
     if (!this.isClient) return;
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = toLocalDateKey();
       const logs = this.getActivityLogs();
       const existingIndex = logs.findIndex((l) => l.date === today);
 
@@ -377,7 +385,7 @@ export class StorageManager {
     for (let i = 45; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateKey(d);
       const count = Math.random() > 0.25 ? Math.floor(Math.random() * 5) + 1 : 0;
       logs.push({
         date: dateStr,

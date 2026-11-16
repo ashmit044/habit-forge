@@ -1,4 +1,5 @@
 import { DayOfWeek, Habit, RealmProgression, RealmType, TechUnlock } from './types';
+import { toLocalDateKey } from './date-utils';
 
 export interface RealmGoalPreset {
   title: string;
@@ -670,7 +671,7 @@ export const INITIAL_HABITS: Habit[] = [
     color: '#3b82f6',
     icon: 'Dumbbell',
     completedToday: true,
-    lastCompletedDate: new Date().toISOString().split('T')[0],
+    lastCompletedDate: toLocalDateKey(),
     createdAt: new Date().toISOString(),
   },
   {
