@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { validateNewHabit } from '@/lib/habit-validation';
 
 export async function GET() {
   try {
@@ -16,23 +17,26 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  let body: unknown;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ success: false, error: 'Request body must be valid JSON' }, { status: 400 });
+  }
+
+  const validation = validateNewHabit(body);
+  if (!validation.success) {
+    return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
+  }
+
+  try {
     const habit = await db.habit.create({
       data: {
-        title: body.title,
-        description: body.description || '',
-        category: body.category || 'Health',
-        difficulty: body.difficulty || 'Medium',
-        targetTimeOfDay: body.targetTimeOfDay || 'Morning',
-        targetRealm: body.targetRealm || 'all',
-        frequency: body.frequency || 'daily',
-        scheduledDays: JSON.stringify(body.scheduledDays || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']),
-        color: body.color || '#10b981',
-        icon: body.icon || 'Flame',
+        ...validation.data,
+        scheduledDays: JSON.stringify(validation.data.scheduledDays),
       },
     });
-    return NextResponse.json({ success: true, habit });
+    return NextResponse.json({ success: true, habit }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to create habit' }, { status: 500 });
   }
